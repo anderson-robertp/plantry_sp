@@ -1,12 +1,11 @@
-import { Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import {
   createHousehold,
   getHouseholdsForUser,
 } from "../services/householdServices.js";
-import { AuthenticatedRequest } from "../middleware/authMiddleware.js";
 
 export async function createHouseholdController(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
@@ -39,7 +38,7 @@ export async function createHouseholdController(
 }
 
 export async function getUserHouseholdsController(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {

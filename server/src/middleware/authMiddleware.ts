@@ -1,16 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-export interface AuthenticatedRequest extends Request {
-  userId?: string;
-}
-
 interface JwtPayload {
   userId: string;
 }
 
 export function authenticate(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): void {

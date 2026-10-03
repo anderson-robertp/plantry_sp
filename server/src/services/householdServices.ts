@@ -29,3 +29,17 @@ export async function getHouseholdsForUser(userId: string) {
 
   return memberships;
 }
+
+export async function getHouseholdMembership(
+  userId: string,
+  householdId: string
+) {
+  if (!mongoose.isValidObjectId(householdId)) {
+    return null;
+  }
+
+  return HouseholdMember.findOne({
+    userId: new mongoose.Types.ObjectId(userId),
+    householdId: new mongoose.Types.ObjectId(householdId),
+  });
+}

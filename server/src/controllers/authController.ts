@@ -4,7 +4,7 @@ import {
   loginUser,
   getUserById,
 } from "../services/authService.js";
-import { AuthenticatedRequest } from "../middleware/authMiddleware.js";
+
 
 export async function registerController(
   req: Request,
@@ -53,7 +53,7 @@ export async function loginController(
 }
 
 export async function getCurrentUserController(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {

@@ -24,7 +24,7 @@ Content-Type: application/json
 
 ### Get My Households
 GET http://localhost:3000/api/households
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwMzkyNTAsImV4cCI6MTc5MTY0NDA1MH0.vNEbiPC7j1CDEyHdqjJoYu1Vt-dFGirFk8VHfu4ZmXk
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwNDMwMjksImV4cCI6MTc5MTY0NzgyOX0.3vDh8VOViLVvT5oma7yOJzqKzAl16ZDlFA9XABHvUek
 
 ### Create Household
 POST http://localhost:3000/api/households
@@ -38,3 +38,40 @@ Content-Type: application/json
 ### Get Current User
 GET http://localhost:3000/api/auth/me
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwMzk1ODYsImV4cCI6MTc5MTY0NDM4Nn0.LrRSG7-0MNTjQMn-T0m7L60QkaiYqi4olnw0fZHUlEM
+
+### Test Household Authorization
+GET http://localhost:3000/api/households/6ac1151c7ec61189d1675a3c/test-auth
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwNDE3NTYsImV4cCI6MTc5MTY0NjU1Nn0.2Yqt2eP0D6Bp6sCyYqERqUtleSNg2xfqC0vo38e2ytA
+
+### Get Pantry
+GET http://localhost:3000/api/households/6ac1151c7ec61189d1675a3c/pantry
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwNDMwMjksImV4cCI6MTc5MTY0NzgyOX0.3vDh8VOViLVvT5oma7yOJzqKzAl16ZDlFA9XABHvUek
+
+### Add Rice to Pantry
+POST http://localhost:3000/api/households/6ac1151c7ec61189d1675a3c/pantry
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwNDU5MDgsImV4cCI6MTc5MTY1MDcwOH0._d-RmzLP-1NchOSwL4V1pSbWpAK0V5ENHHCpFmOp5ac
+Content-Type: application/json
+
+{
+  "ingredientId": "6ac1257fd6d83cff9f708ef9",
+  "quantity": 5,
+  "unit": "lb"
+}
+
+### Update Pantry Item
+PUT http://localhost:3000/api/households/6ac1151c7ec61189d1675a3c/pantry/6ac136003d177a0854d8ee58
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwNDc1NDYsImV4cCI6MTc5MTY1MjM0Nn0.SVEJ6bgSgXwEHRsZbSBqYI1BSZz3JSTbf12o8DW7Fco
+Content-Type: application/json
+
+{
+  "quantity": 8,
+  "unit": "lb"
+}
+
+### Delete Pantry Item
+DELETE http://localhost:3000/api/households/6ac1151c7ec61189d1675a3c/pantry/6ac136003d177a0854d8ee58
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwNDc1NDYsImV4cCI6MTc5MTY1MjM0Nn0.SVEJ6bgSgXwEHRsZbSBqYI1BSZz3JSTbf12o8DW7Fco
+
+### Verify Pantry
+GET http://localhost:3000/api/households/6ac1151c7ec61189d1675a3c/pantry
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwNDg4MzksImV4cCI6MTc5MTY1MzYzOX0.bwLS0xeo1DzS3xreBaLYfK4oB94J31I8_5J54HEbN-o
