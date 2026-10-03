@@ -1,25 +1,36 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import {
   createHousehold,
   getHouseholdsForUser,
 } from "../services/householdServices.js";
+import { AuthenticatedRequest } from "../middleware/authMiddleware.js";
 
 export async function createHouseholdController(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const { name, userId } = req.body;
+    const { name } = req.body;
 
-    if (!name || !userId) {
+    if (!name) {
       res.status(400).json({
-        message: "name and userId are required",
+        message: "name is required",
       });
       return;
     }
 
-    const household = await createHousehold(name, userId);
+    if (!req.userId) {
+      res.status(401).json({
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const household = await createHousehold(
+      name,
+      req.userId
+    );
 
     res.status(201).json(household);
   } catch (error) {
@@ -28,21 +39,21 @@ export async function createHouseholdController(
 }
 
 export async function getUserHouseholdsController(
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const { userId } = req.params;
-
-    if (!userId || Array.isArray(userId)) {
-      res.status(400).json({
-        message: "A valid userId is required",
+    if (!req.userId) {
+      res.status(401).json({
+        message: "Authentication required",
       });
       return;
     }
 
-    const households = await getHouseholdsForUser(userId);
+    const households = await getHouseholdsForUser(
+      req.userId
+    );
 
     res.json(households);
   } catch (error) {

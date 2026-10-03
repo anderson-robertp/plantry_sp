@@ -1,0 +1,40 @@
+### Health Check
+GET http://localhost:3000/api/health
+
+
+### Register User
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Test1 User",
+  "email": "test1@plantry.local",
+  "password": "Password123!"
+}
+
+
+### Login
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test1@plantry.local",
+  "password": "Password123!"
+}
+
+### Get My Households
+GET http://localhost:3000/api/households
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwMzkyNTAsImV4cCI6MTc5MTY0NDA1MH0.vNEbiPC7j1CDEyHdqjJoYu1Vt-dFGirFk8VHfu4ZmXk
+
+### Create Household
+POST http://localhost:3000/api/households
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwMzkyNTAsImV4cCI6MTc5MTY0NDA1MH0.vNEbiPC7j1CDEyHdqjJoYu1Vt-dFGirFk8VHfu4ZmXk
+Content-Type: application/json
+
+{
+  "name": "Test Family"
+}
+
+### Get Current User
+GET http://localhost:3000/api/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwMzk1ODYsImV4cCI6MTc5MTY0NDM4Nn0.LrRSG7-0MNTjQMn-T0m7L60QkaiYqi4olnw0fZHUlEM

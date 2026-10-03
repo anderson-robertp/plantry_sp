@@ -3,11 +3,12 @@ import {
   createHouseholdController,
   getUserHouseholdsController,
 } from "../controllers/householdController.js";
+import { authenticate } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-router.post("/", createHouseholdController);
+router.post("/", authenticate, createHouseholdController);
 
-router.get("/user/:userId", getUserHouseholdsController);
+router.get("/", authenticate, getUserHouseholdsController);
 
 export default router;
