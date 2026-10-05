@@ -5,11 +5,30 @@ import {
   getCurrentUserController,
 } from "../controllers/authController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
+import { validate } from "../middleware/validationMiddleware.js";
+import {
+  registerSchema,
+  loginSchema,
+} from "../validation/authValidation.js";
 
 const router = Router();
 
-router.post("/register", registerController);
-router.post("/login", loginController);
-router.get("/me", authenticate, getCurrentUserController);
+router.post(
+  "/register",
+  validate(registerSchema),
+  registerController
+);
+
+router.post(
+  "/login", 
+  validate(loginSchema), 
+  loginController
+);
+
+router.get(
+  "/me", 
+  authenticate, 
+  getCurrentUserController
+);
 
 export default router;

@@ -7,9 +7,19 @@ POST http://localhost:3000/api/auth/register
 Content-Type: application/json
 
 {
-  "name": "Test1 User",
-  "email": "test1@plantry.local",
+  "name": "Test2 User",
+  "email": "test2@plantry.local",
   "password": "Password123!"
+}
+
+### Register User with Invalid Data
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "",
+  "email": "not-an-email",
+  "password": "123"
 }
 
 
@@ -20,6 +30,15 @@ Content-Type: application/json
 {
   "email": "test1@plantry.local",
   "password": "Password123!"
+}
+
+### Login with Invalid Data
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "not-an-email",
+  "password": ""
 }
 
 ### Get My Households
@@ -75,3 +94,15 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxM
 ### Verify Pantry
 GET http://localhost:3000/api/households/6ac1151c7ec61189d1675a3c/pantry
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwNDg4MzksImV4cCI6MTc5MTY1MzYzOX0.bwLS0xeo1DzS3xreBaLYfK4oB94J31I8_5J54HEbN-o
+
+### Add Invalid Pantry Item (Missing Unit)
+POST http://localhost:3000/api/households/6ac1151c7ec61189d1675a3c/pantry
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTExMjcxNTgsImV4cCI6MTc5MTczMTk1OH0.CZ9-sn0w89gAE3scPdygOetHTLwbA0EoPqGO3zVRUe4
+Content-Type: application/json
+
+{
+  "ingredientId": "not-an-id",
+  "quantity": -2,
+  "unit": "",
+  "expirationDate": "whenever"
+}
