@@ -5,6 +5,7 @@ export interface IPantryItem extends Document {
   ingredientId: mongoose.Types.ObjectId;
   quantity: number;
   unit: string;
+  baseQuantity: number;
   expirationDate?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -36,6 +37,12 @@ const pantryItemSchema = new Schema<IPantryItem>(
       trim: true,
     },
 
+    baseQuantity: { 
+      type: Number, 
+      required: true, 
+      min: 0 
+    },
+
     expirationDate: {
       type: Date,
     },
@@ -48,6 +55,7 @@ const pantryItemSchema = new Schema<IPantryItem>(
 pantryItemSchema.index({
   householdId: 1,
   ingredientId: 1,
+  expirationDate: 1,
 });
 
 export const PantryItem = mongoose.model<IPantryItem>(

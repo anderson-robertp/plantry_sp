@@ -1,4 +1,6 @@
 import mongoose, { Document, Schema } from "mongoose";
+//import { IRecipeIngredient } from "./recipeIngredientModel.js";
+import { recipeIngredientLineSchema, IRecipeIngredientLine } from "./schemas/recipeIngredientLine.js";
 
 export interface IRecipe extends Document {
   householdId: mongoose.Types.ObjectId;
@@ -6,9 +8,13 @@ export interface IRecipe extends Document {
   name: string;
   description?: string;
   servings: number;
-  instructions: string;
+  ingredients: IRecipeIngredientLine[];
+  tags: string[];
+  steps: [String]
   prepTimeMinutes?: number;
   cookTimeMinutes?: number;
+  sourceUrl?: string;
+  imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,10 +49,13 @@ const recipeSchema = new Schema<IRecipe>(
       min: 1,
     },
 
-    instructions: {
-      type: String,
+    ingredients: { type: [recipeIngredientLineSchema], default: [] },
+
+    tags: { type: [String], default: [] },
+
+    steps: {
+      type: [String],
       required: true,
-      trim: true,
     },
 
     prepTimeMinutes: {
@@ -58,16 +67,24 @@ const recipeSchema = new Schema<IRecipe>(
       type: Number,
       min: 0,
     },
+
+    sourceUrl: {
+      type: String,
+      trim: true,
+    },
+
+    imageUrl: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-recipeSchema.index({
-  householdId: 1,
-  name: 1,
-});
+recipeSchema.index({ householdId: 1, "ingredients.ingredientId": 1 });
+recipeSchema.index({ householdId: 1, tags: 1 });
 
 export const Recipe = mongoose.model<IRecipe>(
   "Recipe",

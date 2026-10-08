@@ -1,61 +1,26 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Types } from "mongoose";
+import { IRecipeIngredientLine } from "./schemas/recipeIngredientLine.js";
+import { recipeFields } from "./schemas/recipeFields.js";
 
 export interface IGlobalRecipe extends Document {
   name: string;
   description?: string;
   servings: number;
-  instructions: string;
+  steps: string[];
+  ingredients: IRecipeIngredientLine[];
+  tags: string[];
   prepTimeMinutes?: number;
   cookTimeMinutes?: number;
+  sourceUrl?: string;
+  imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const globalRecipeSchema = new Schema<IGlobalRecipe>(
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+const globalRecipeSchema = new Schema<IGlobalRecipe>(recipeFields, { timestamps: true });
 
-    description: {
-      type: String,
-      trim: true,
-    },
+globalRecipeSchema.index({ name: "text", tags: "text" });
+globalRecipeSchema.index({ tags: 1 });
+globalRecipeSchema.index({ "ingredients.ingredientId": 1 });
 
-    servings: {
-      type: Number,
-      required: true,
-      min: 1,
-    },
-
-    instructions: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    prepTimeMinutes: {
-      type: Number,
-      min: 0,
-    },
-
-    cookTimeMinutes: {
-      type: Number,
-      min: 0,
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
-globalRecipeSchema.index({
-  name: 1,
-});
-
-export const GlobalRecipe = mongoose.model<IGlobalRecipe>(
-  "GlobalRecipe",
-  globalRecipeSchema
-);
+export const GlobalRecipe = mongoose.model<IGlobalRecipe>("GlobalRecipe", globalRecipeSchema);

@@ -1,10 +1,13 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IRecipeIngredient extends Document {
-  recipeId: mongoose.Types.ObjectId;
   ingredientId: mongoose.Types.ObjectId;
   quantity: number;
   unit: string;
+  baseQuantity: number; // grams / ml / count
+  originalText?: string; // "2 cloves garlic, minced"
+  group?: string;        // "Crust", "Sauce"
+  optional?: boolean;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -13,34 +16,14 @@ export interface IRecipeIngredient extends Document {
 const recipeIngredientSchema =
   new Schema<IRecipeIngredient>(
     {
-      recipeId: {
-        type: Schema.Types.ObjectId,
-        ref: "Recipe",
-        required: true,
-      },
-
-      ingredientId: {
-        type: Schema.Types.ObjectId,
-        ref: "Ingredient",
-        required: true,
-      },
-
-      quantity: {
-        type: Number,
-        required: true,
-        min: 0,
-      },
-
-      unit: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-
-      notes: {
-        type: String,
-        trim: true,
-      },
+      ingredientId: { type: Schema.Types.ObjectId, ref: "Ingredient", required: true },
+      quantity: { type: Number, required: true, min: 0 },
+      unit: { type: String, required: true, trim: true },
+      baseQuantity: { type: Number, required: true, min: 0 }, // grams / ml / count
+      originalText: { type: String, trim: true },             // "2 cloves garlic, minced"
+      notes: { type: String, trim: true },
+      group: { type: String, trim: true },                    // "Crust", "Sauce"
+      optional: { type: Boolean, default: false },
     },
     {
       timestamps: true,
