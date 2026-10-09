@@ -4,10 +4,10 @@ import {
   addPantryItemController,
   updatePantryItemController,
   deletePantryItemController,
-} from "../controllers/pantryController.js";
-import { authenticate } from "../middleware/authMiddleware.js";
-import { requireHouseholdMember } from "../middleware/householdAuthMiddleware.js";
-import { validate } from "../middleware/validationMiddleware.js";
+} from "../controllers/pantry.js";
+import { authenticate } from "../middleware/auth.js";
+import { requireHouseholdMember } from "../middleware/householdAuth.js";
+import { validate } from "../middleware/validation.js";
 import {
   addPantryItemSchema,
   updatePantryItemSchema,

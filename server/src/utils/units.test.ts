@@ -7,7 +7,6 @@ import {
   toBaseQuantity,
   ConvertibleIngredient,
 } from "./units.js";
-
 import { describe, expect, it } from "@jest/globals";
 
 // Representative ingredients

@@ -3,9 +3,9 @@ import {
   registerController,
   loginController,
   getCurrentUserController,
-} from "../controllers/authController.js";
-import { authenticate } from "../middleware/authMiddleware.js";
-import { validate } from "../middleware/validationMiddleware.js";
+} from "../controllers/auth.js";
+import { authenticate } from "../middleware/auth.js";
+import { validate } from "../middleware/validation.js";
 import {
   registerSchema,
   loginSchema,

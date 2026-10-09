@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
-import { getHouseholdMembership } from "../services/householdServices.js";
+import { getHouseholdMembership } from "../services/household.js";
 
 export async function requireHouseholdMember(
   req: Request,

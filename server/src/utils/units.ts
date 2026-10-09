@@ -70,8 +70,8 @@ export class UnitConversionError extends Error {
 /** The slice of Ingredient the conversion code needs. */
 export interface ConvertibleIngredient {
   baseUnitType: UnitType;
-  gramsPerMl?: number | null;
-  gramsPerPiece?: number | null;
+  gramsPerMl?: number | null | undefined;
+  gramsPerPiece?: number | null | undefined;
 }
 
 /**

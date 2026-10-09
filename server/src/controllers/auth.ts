@@ -3,7 +3,7 @@ import {
   registerUser,
   loginUser,
   getUserById,
-} from "../services/authService.js";
+} from "../services/auth.js";
 
 
 export async function registerController(

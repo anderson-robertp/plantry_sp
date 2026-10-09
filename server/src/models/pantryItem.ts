@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { LOCATIONS , type Location } from "../utils/constants.js";
 
 export interface IPantryItem extends Document {
   householdId: mongoose.Types.ObjectId;
@@ -6,6 +7,7 @@ export interface IPantryItem extends Document {
   quantity: number;
   unit: string;
   baseQuantity: number;
+  location?: Location;
   expirationDate?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -41,6 +43,11 @@ const pantryItemSchema = new Schema<IPantryItem>(
       type: Number, 
       required: true, 
       min: 0 
+    },
+
+    location: {
+      type: String,
+      enum: ["fridge", "freezer", "pantry", "other"],
     },
 
     expirationDate: {

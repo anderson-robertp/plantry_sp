@@ -2,9 +2,9 @@ import { Router, Request, Response, NextFunction } from "express";
 import {
   createHouseholdController,
   getUserHouseholdsController,
-} from "../controllers/householdController.js";
-import { authenticate } from "../middleware/authMiddleware.js";
-import { requireHouseholdMember } from "../middleware/householdAuthMiddleware.js";
+} from "../controllers/household.js";
+import { authenticate } from "../middleware/auth.js";
+import { requireHouseholdMember } from "../middleware/householdAuth.js";
 
 const router = Router();
 

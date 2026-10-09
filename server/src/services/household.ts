@@ -1,5 +1,5 @@
-import { Household, type IHousehold }  from "../models/householdModel.js";
-import { HouseholdMember } from "../models/householdMemberModel.js";
+import { Household, type IHousehold }  from "../models/household.js";
+import { HouseholdMember } from "../models/householdMember.js";
 import mongoose from "mongoose";
 
 export async function createHousehold(

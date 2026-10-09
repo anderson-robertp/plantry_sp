@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import {
   createHousehold,
   getHouseholdsForUser,
-} from "../services/householdServices.js";
+} from "../services/household.js";
 
 export async function createHouseholdController(
   req: Request,
