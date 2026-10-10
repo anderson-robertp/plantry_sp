@@ -48,3 +48,19 @@ export const updateRecipeInput = recipeBody
 export type RecipeIngredientInput = z.infer<typeof recipeIngredientInput>;
 export type CreateRecipeInput = z.infer<typeof createRecipeInput>;
 export type UpdateRecipeInput = z.infer<typeof updateRecipeInput>;
+
+/** For routes like GET/PATCH/DELETE /recipes/:recipeId */
+export const recipeParams = z.object({ recipeId: objectIdSchema });
+
+/** For routes like POST /global-recipes/:globalRecipeId/save */
+export const globalRecipeParams = z.object({ globalRecipeId: objectIdSchema });
+
+/** GET /recipes?search=pan&tag=vegan&ingredientId=<id>&page=1&limit=50 */
+export const listRecipesQuery = z.object({
+  search: z.string().trim().min(1).max(100).optional(),
+  tag: z.string().trim().toLowerCase().min(1).max(40).optional(),
+  ingredientId: objectIdSchema.optional(),
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type ListRecipesQuery = z.infer<typeof listRecipesQuery>;

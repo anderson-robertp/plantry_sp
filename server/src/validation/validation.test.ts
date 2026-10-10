@@ -1,6 +1,17 @@
 import { idParams } from "./common.js";
-import { createPantryItemInput, updatePantryItemInput } from "./pantry.js";
-import { createRecipeInput, updateRecipeInput } from "./recipe.js";
+import {
+  createPantryItemInput,
+  listPantryQuery,
+  pantryItemParams,
+  updatePantryItemInput,
+} from "./pantry.js";
+import {
+  createRecipeInput,
+  globalRecipeParams,
+  listRecipesQuery,
+  recipeParams,
+  updateRecipeInput,
+} from "./recipe.js";
 import { describe, expect, it } from "@jest/globals";
 
 const ID = "A1".repeat(12); // uppercase hex on purpose
@@ -123,5 +134,57 @@ describe("idParams", () => {
   it("rejects anything else", () => {
     expect(idParams.safeParse({ id: "123" }).success).toBe(false);
     expect(idParams.safeParse({}).success).toBe(false);
+  });
+});
+
+describe("pantry params and query", () => {
+  it("pantryItemParams accepts and lowercases an id, rejects junk", () => {
+    expect(pantryItemParams.parse({ pantryItemId: ID })).toEqual({ pantryItemId: ID_LOWER });
+    expect(pantryItemParams.safeParse({ pantryItemId: "abc" }).success).toBe(false);
+    expect(pantryItemParams.safeParse({}).success).toBe(false);
+  });
+
+  it("listPantryQuery allows no filter, a valid location, and rejects others", () => {
+    expect(listPantryQuery.parse({})).toEqual({});
+    expect(listPantryQuery.parse({ location: "fridge" })).toEqual({ location: "fridge" });
+    expect(listPantryQuery.safeParse({ location: "garage" }).success).toBe(false);
+    expect(listPantryQuery.safeParse({ location: ["fridge", "freezer"] }).success).toBe(false);
+  });
+});
+
+describe("recipe params and list query", () => {
+  it("recipeParams and globalRecipeParams accept ids and reject junk", () => {
+    expect(recipeParams.parse({ recipeId: ID })).toEqual({ recipeId: ID_LOWER });
+    expect(globalRecipeParams.parse({ globalRecipeId: ID })).toEqual({ globalRecipeId: ID_LOWER });
+    expect(recipeParams.safeParse({ recipeId: "nope" }).success).toBe(false);
+    expect(globalRecipeParams.safeParse({}).success).toBe(false);
+  });
+
+  it("listRecipesQuery applies paging defaults", () => {
+    expect(listRecipesQuery.parse({})).toEqual({ page: 1, limit: 50 });
+  });
+
+  it("coerces query strings and normalizes values", () => {
+    const out = listRecipesQuery.parse({
+      search: " pan ",
+      tag: " Vegan ",
+      ingredientId: ID,
+      page: "2",
+      limit: "10",
+    });
+    expect(out).toEqual({ search: "pan", tag: "vegan", ingredientId: ID_LOWER, page: 2, limit: 10 });
+  });
+
+  it("rejects bad paging, blank search and bad ingredient ids", () => {
+    const bad = [
+      { page: "0" },
+      { page: "abc" },
+      { page: "1.5" },
+      { limit: "0" },
+      { limit: "101" },
+      { search: "   " },
+      { ingredientId: "x" },
+    ];
+    for (const q of bad) expect(listRecipesQuery.safeParse(q).success).toBe(false);
   });
 });

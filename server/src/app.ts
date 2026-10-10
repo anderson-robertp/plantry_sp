@@ -1,7 +1,7 @@
 import express from "express";
-import householdRoutes from "./routes/householdRoutes.js";
-import authRoutes from "./routes/authRoutes.js";
-import pantryRoutes from "./routes/pantryRoutes.js";
+import householdRoutes from "./routes/household.js";
+import authRoutes from "./routes/auth.js";
+import pantryRoutes from "./routes/pantry.js";
 
 const app = express();
 
