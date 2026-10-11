@@ -3,6 +3,8 @@ import householdRoutes from "./routes/household.js";
 import authRoutes from "./routes/auth.js";
 import pantryRoutes from "./routes/pantry.js";
 import globalRecipeRoutes from "./routes/globalRecipe.js";
+import mealPlanRoutes from "./routes/mealPlan.js";
+import recipeRoutes from "./routes/recipe.js";
 import swaggerUi from "swagger-ui-express";
 import { openApiDocument } from "./config/openapi.js";
 
@@ -28,6 +30,8 @@ app.use("/api/households", householdRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/households", pantryRoutes);
 app.use("/api/global-recipes", globalRecipeRoutes);
+app.use("/api/households", mealPlanRoutes);
+app.use("/api/households", recipeRoutes);
 
 // Error handling middleware
 

@@ -12,6 +12,9 @@ import {
   listPantryQuery,
 } from "../validation/pantry.js";
 
+import { registerRecipePaths } from "./recipePaths.js";
+import { registerMealPlanPaths } from "./mealPlanPaths.js";
+
 import { objectIdSchema } from "../validation/common.js";
 
 export const registry = new OpenAPIRegistry();
@@ -25,6 +28,10 @@ const bearerAuth = registry.registerComponent(
     bearerFormat: "JWT",
   }
 );
+
+const security = [{ [bearerAuth.name]: [] }];
+registerRecipePaths(registry, security);
+registerMealPlanPaths(registry, security);
 
 // Register reusable request schemas.
 const CreatePantryItem = registry.register(
