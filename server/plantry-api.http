@@ -43,7 +43,7 @@ Content-Type: application/json
 
 ### Get My Households
 GET http://localhost:3000/api/households
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTEwNDMwMjksImV4cCI6MTc5MTY0NzgyOX0.3vDh8VOViLVvT5oma7yOJzqKzAl16ZDlFA9XABHvUek
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YWMxMTJmYmJlMjA2ZjM4MTQ4NmVhYzkiLCJpYXQiOjE3OTE3NzAzNDcsImV4cCI6MTc5MjM3NTE0N30.P0gd-lofPcU6AVbCjzTzgFWeoptEPbTtBCgjbF1oG2M
 
 ### Create Household
 POST http://localhost:3000/api/households

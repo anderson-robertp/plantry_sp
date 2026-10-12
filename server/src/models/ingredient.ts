@@ -1,10 +1,12 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { normalizeName } from "../utils/text.js";
+import { INGREDIENT_CATEGORIES, IngredientCategory } from "../utils/constants.js";
 
 export interface IIngredient extends Document {
   name: string;
   normalizedName: string;
   aliases: string[];
-  category?: "produce" | "dairy" | "meat" | "grains" | "spices" | "condiments" | "beverages" | "snacks" | "frozen" | "canned" | "baking" | "other";
+  category?: IngredientCategory;
   defaultUnit?: string;
   baseUnitType: "mass" | "volume" | "count";
   gramsPerMl?: number;      // for volume <-> mass conversion
@@ -34,7 +36,7 @@ const ingredientSchema = new Schema<IIngredient>(
 
     category: {
       type: String,
-      enum: ["produce", "dairy", "meat", "grains", "spices", "condiments", "beverages", "snacks", "frozen", "canned", "baking", "other"],
+      enum: INGREDIENT_CATEGORIES,
       trim: true,
     },
 
