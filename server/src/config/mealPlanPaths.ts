@@ -5,6 +5,9 @@ import {
   checkShoppingItemInput,
   createMealPlanInput,
   generateShoppingListInput,
+  mealPlanEntryInput,
+  mealPlanEntryParams,
+  updateMealPlanEntryInput,
   listMealPlansQuery,
   mealPlanParams,
   shoppingItemParams,
@@ -20,6 +23,11 @@ const ShoppingItemParams = HouseholdParams.extend({
   ingredientId: shoppingItemParams.shape.ingredientId,
 });
 
+const HouseholdPlanAndEntryParams = HouseholdParams.extend({
+  planId: mealPlanEntryParams.shape.planId,
+  entryId: mealPlanEntryParams.shape.entryId,
+});
+
 const base = "/api/households/{householdId}/meal-plans";
 const errors = {
   401: { description: "Authentication required" },
@@ -32,6 +40,8 @@ export function registerMealPlanPaths(registry: OpenAPIRegistry, security: Secur
   const UpdateMealPlan = registry.register("UpdateMealPlan", updateMealPlanInput);
   const GenerateShoppingList = registry.register("GenerateShoppingList", generateShoppingListInput);
   const CheckShoppingItem = registry.register("CheckShoppingItem", checkShoppingItemInput);
+  const AddPlanEntry = registry.register("AddPlanEntry", mealPlanEntryInput);
+  const UpdatePlanEntry = registry.register("UpdatePlanEntry", updateMealPlanEntryInput);
   const tags = ["Meal plans"];
   const listTags = ["Shopping lists"];
 
@@ -62,7 +72,23 @@ export function registerMealPlanPaths(registry: OpenAPIRegistry, security: Secur
   });
 
   registry.registerPath({
-    method: "post", path: `${base}/{planId}/shopping-list`, summary: "Generate (or regenerate) the shopping list; check marks are kept. Send {} for defaults.", tags: listTags, security,
+    method: "post", path: `${base}/{planId}/entries`, summary: "Add one meal. A date outside the plan stretches the plan to cover it (up to 62 days).", tags, security,
+    request: { params: HouseholdAndPlanParams, body: { content: { "application/json": { schema: AddPlanEntry } } } },
+    responses: { 201: { description: "The updated plan" }, 404: { description: "Plan not found" }, ...errors },
+  });
+  registry.registerPath({
+    method: "patch", path: `${base}/{planId}/entries/{entryId}`, summary: "Change one meal: move it to another day or slot, swap the recipe, change the servings. A cooked meal can't be edited until the cook is undone.", tags, security,
+    request: { params: HouseholdPlanAndEntryParams, body: { content: { "application/json": { schema: UpdatePlanEntry } } } },
+    responses: { 200: { description: "The updated plan" }, 404: { description: "Plan or entry not found" }, 409: { description: "That meal was cooked (error.code entry_cooked)" }, ...errors },
+  });
+  registry.registerPath({
+    method: "delete", path: `${base}/{planId}/entries/{entryId}`, summary: "Remove one meal (also fine for a cooked one; cook history is kept)", tags, security,
+    request: { params: HouseholdPlanAndEntryParams },
+    responses: { 204: { description: "Removed" }, 404: { description: "Plan or entry not found" }, ...errors },
+  });
+
+  registry.registerPath({
+    method: "post", path: `${base}/{planId}/shopping-list`, summary: "Generate (or regenerate) the shopping list; check marks are kept. Cooked meals are left out. Send {} for defaults, or {\"fromDate\":\"YYYY-MM-DD\"} (today) to also ignore meals on earlier days.", tags: listTags, security,
     request: { params: HouseholdAndPlanParams, body: { required: false, content: { "application/json": { schema: GenerateShoppingList } } } },
     responses: { 200: { description: "Saved shopping list: items, covered, staples, warnings" }, 404: { description: "Plan not found" }, ...errors },
   });

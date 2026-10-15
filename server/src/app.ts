@@ -6,6 +6,7 @@ import globalRecipeRoutes from "./routes/globalRecipe.js";
 import mealPlanRoutes from "./routes/mealPlan.js";
 import recipeRoutes from "./routes/recipe.js";
 import ingredientRoutes from "./routes/ingredient.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 import swaggerUi from "swagger-ui-express";
 import { openApiDocument } from "./config/openapi.js";
 
@@ -36,5 +37,6 @@ app.use("/api/households", recipeRoutes);
 app.use("/api/households", ingredientRoutes);
 
 // Error handling middleware
+app.use(errorHandler)
 
 export default app;

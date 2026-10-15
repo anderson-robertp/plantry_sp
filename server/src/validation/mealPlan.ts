@@ -78,6 +78,18 @@ export const updateMealPlanInput = mealPlanBody
 
 export const mealPlanParams = z.object({ planId: objectIdSchema });
 
+/**
+ * Single-entry edits, so a plan can be reshuffled one meal at a time without resending it.
+ * Moving an entry outside the plan's dates stretches the plan (up to MAX_PLAN_DAYS).
+ */
+export const mealPlanEntryParams = z.object({ planId: objectIdSchema, entryId: objectIdSchema });
+
+export const updateMealPlanEntryInput = mealPlanEntryInput
+  .partial()
+  .refine((obj) => Object.keys(obj).length > 0, {
+    message: "Provide at least one field to update",
+  });
+
 /** GET /meal-plans?from=2026-10-01&to=2026-10-31 : plans overlapping that window. */
 export const listMealPlansQuery = z.object({
   from: isoDateSchema.optional(),
@@ -92,6 +104,12 @@ export const generateShoppingListInput = z.object({
   includeOptional: z.boolean().optional(),
   unitSystem: z.enum(UNIT_SYSTEMS).optional(),
   ignoreExpired: z.boolean().optional(),
+  /**
+   * Today's date for the household ("YYYY-MM-DD"). Meals before it are left out (they were
+   * missed or already happened), and pantry expiry is judged from this day instead of the plan's
+   * first day. Send it from the client; the server can't know the household's time zone.
+   */
+  fromDate: isoDateSchema.optional(),
 });
 
 export const shoppingItemParams = z.object({
@@ -104,5 +122,6 @@ export const checkShoppingItemInput = z.object({ checked: z.boolean() });
 export type MealPlanEntryInput = z.infer<typeof mealPlanEntryInput>;
 export type CreateMealPlanInput = z.infer<typeof createMealPlanInput>;
 export type UpdateMealPlanInput = z.infer<typeof updateMealPlanInput>;
+export type UpdateMealPlanEntryInput = z.infer<typeof updateMealPlanEntryInput>;
 export type ListMealPlansQuery = z.infer<typeof listMealPlansQuery>;
 export type GenerateShoppingListInput = z.infer<typeof generateShoppingListInput>;

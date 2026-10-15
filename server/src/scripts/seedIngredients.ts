@@ -12,6 +12,9 @@ import mongoose from "mongoose";
 import { GLOBAL_INGREDIENTS } from "../data/globalIngredients.js";
 import { buildSeedOps } from "../data/seedOps.js";
 import { Ingredient } from "../models/ingredient.js";
+import dotenv from "dotenv";
+
+dotenv.config()
 
 async function main() {
   const args = new Set(process.argv.slice(2));
@@ -19,7 +22,7 @@ async function main() {
   const dryRun = args.has("--dry-run");
 
   // Load .env if dotenv is installed; otherwise rely on the environment already being set.
-  await import("dotenv").catch(() => undefined);
+  //await import("dotenv").catch(() => undefined);
 
   const uri = process.env.MONGODB_URI ?? process.env.MONGO_URI ?? process.env.DATABASE_URL;
   if (!uri) {
