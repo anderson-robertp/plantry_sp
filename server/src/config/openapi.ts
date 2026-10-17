@@ -20,6 +20,7 @@ import { registerHouseholdPaths } from "./householdPaths.js";
 import { registerRecipeMatchPaths } from "./recipeMatchPaths.js";
 import { objectIdSchema } from "../validation/common.js";
 import { registerShoppingItemPaths } from "./shoppingItemPaths.js";
+import { registerDashboardPaths } from "./dashboardPaths.js";
 
 export const registry = new OpenAPIRegistry();
 
@@ -35,12 +36,13 @@ const bearerAuth = registry.registerComponent(
 
 const security = [{ [bearerAuth.name]: [] }];
 registerAuthPaths(registry, security);
-registerHouseholdPaths(registry, security)
+registerHouseholdPaths(registry, security);
+registerDashboardPaths(registry, security);
 registerIngredientPaths(registry, security);
 registerRecipePaths(registry, security);
-registerRecipeMatchPaths(registry, security)
+registerRecipeMatchPaths(registry, security);
 registerMealPlanPaths(registry, security);
-registerShoppingItemPaths(registry, security)
+registerShoppingItemPaths(registry, security);
 
 
 // Register reusable request schemas.
