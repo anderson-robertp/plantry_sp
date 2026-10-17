@@ -4,11 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
     "start": "node dist/index.js",
     "dev": "tsx watch --import ./src/config/zod-extend.ts src/server.ts",
     "build": "tsc",
-    "swagger": "node src/config/swagger.ts"
+    "swagger": "node src/config/swagger.ts",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathIgnorePatterns=e2e",
+    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js src/e2e"
   },
   "keywords": [],
   "author": "Robert Anderson <and23045@byui.edu>",
@@ -29,12 +30,17 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@jest/globals": "^30.5.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.6.3",
+    "@types/supertest": "^7.2.1",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "jest": "^30.5.2",
+    "mongodb-memory-server": "^11.3.0",
+    "supertest": "^7.3.1",
     "swagger-autogen": "^2.23.7",
     "swagger-jsdoc": "^6.3.0",
     "ts-jest": "^29.4.14",
@@ -45,6 +51,7 @@
     "esbuild@0.28.2": true,
     "@parcel/watcher@2.6.0": true,
     "unrs-resolver@1.12.2": true,
-    "@scarf/scarf@1.4.0": true
+    "@scarf/scarf@1.4.0": true,
+    "mongodb-memory-server@11.3.0": true
   }
 }
