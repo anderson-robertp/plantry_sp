@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 import { UNIT_SYSTEMS, type UnitSystem } from "../utils/mealPlanConstants.js";
 import { CANONICAL_UNITS, type Unit } from "../utils/units.js";
+import { customItemSchema, ICustomShoppingItem } from "./shoppingListExtras.js";
 
 export interface IShoppingSource {
   recipeId: Types.ObjectId;
@@ -22,6 +23,7 @@ export interface IShoppingItem {
   sources: IShoppingSource[];
   /** Shopper's check mark. Only meaningful on `items`. */
   checked: boolean;
+  note?: string; adjusted?: boolean;
 }
 
 export interface IShoppingWarning {
@@ -54,6 +56,7 @@ export interface IShoppingList extends Document {
   covered: IShoppingItem[];
   /** Staples left off the list. */
   staples: IShoppingItem[];
+  extraItems: ICustomShoppingItem[];
   warnings: IShoppingWarning[];
   createdAt: Date;
   updatedAt: Date;
@@ -85,6 +88,8 @@ const itemSchema = new Schema<IShoppingItem>(
     isStaple: { type: Boolean, default: false },
     sources: { type: [sourceSchema], default: [] },
     checked: { type: Boolean, default: false },
+    note: { type: String, maxlength: 200 }, 
+    adjusted: { type: Boolean, default: false },
   },
   { _id: false }
 );
@@ -118,6 +123,7 @@ const shoppingListSchema = new Schema<IShoppingList>(
     covered: { type: [itemSchema], default: [] },
     staples: { type: [itemSchema], default: [] },
     warnings: { type: [warningSchema], default: [] },
+    extraItems: { type: [customItemSchema], default: [] },
   },
   { timestamps: true }
 );

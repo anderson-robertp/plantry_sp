@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-  checkShoppingItemController,
   createMealPlanController,
   deleteMealPlanController,
   generateShoppingListController,
@@ -23,10 +22,6 @@ router.delete("/:householdId/meal-plans/:planId", ...guard, deleteMealPlanContro
 
 router.post("/:householdId/meal-plans/:planId/shopping-list", ...guard, generateShoppingListController);
 router.get("/:householdId/meal-plans/:planId/shopping-list", ...guard, getShoppingListController);
-router.patch(
-  "/:householdId/meal-plans/:planId/shopping-list/items/:ingredientId",
-  ...guard,
-  checkShoppingItemController
-);
+
 
 export default router;

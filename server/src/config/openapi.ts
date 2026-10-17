@@ -18,8 +18,8 @@ import { registerAuthPaths } from "./authPaths.js";
 import { registerIngredientPaths } from "./ingredientPaths.js";
 import { registerHouseholdPaths } from "./householdPaths.js";
 import { registerRecipeMatchPaths } from "./recipeMatchPaths.js";
-
 import { objectIdSchema } from "../validation/common.js";
+import { registerShoppingItemPaths } from "./shoppingItemPaths.js";
 
 export const registry = new OpenAPIRegistry();
 
@@ -40,6 +40,7 @@ registerIngredientPaths(registry, security);
 registerRecipePaths(registry, security);
 registerRecipeMatchPaths(registry, security)
 registerMealPlanPaths(registry, security);
+registerShoppingItemPaths(registry, security)
 
 
 // Register reusable request schemas.
