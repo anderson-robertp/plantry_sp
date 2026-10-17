@@ -1,5 +1,6 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 import { CANONICAL_UNITS, type Unit } from "../utils/units.js";
+import { LOCATIONS, type Location } from "../utils/constants.js";
 
 /** One pantry batch (or part of one) that a cook used up. Enough to put it back on undo. */
 export interface ICookConsumed {
@@ -12,7 +13,7 @@ export interface ICookConsumed {
   unit: Unit;
   /** Copied from the batch, so undo can recreate it if it was emptied and deleted. */
   expirationDate?: Date;
-  location?: string;
+  location?: Location;
 }
 
 export interface ICookShortfall {
@@ -50,7 +51,7 @@ const consumedSchema = new Schema<ICookConsumed>(
     quantity: { type: Number, required: true, min: 0 },
     unit: { type: String, enum: CANONICAL_UNITS, required: true },
     expirationDate: { type: Date },
-    location: { type: String },
+    location: { type: LOCATIONS },
   },
   { _id: false }
 );

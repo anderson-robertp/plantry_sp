@@ -1,34 +1,12 @@
 import { Router } from "express";
-import {
-  registerController,
-  loginController,
-  getCurrentUserController,
-} from "../controllers/auth.js";
-import { authenticate } from "../middleware/auth.js";
-import { validate } from "../middleware/validation.js";
-import {
-  registerSchema,
-  loginSchema,
-} from "../validation/authValidation.js";
+import { getCurrentUserController, loginController, registerController } from "../controllers/auth.js";
+import { authenticate } from "../middleware/authenticate.js";
+import { authLimiter } from "../middleware/rateLimit.js";
 
 const router = Router();
 
-router.post(
-  "/register",
-  validate(registerSchema),
-  registerController
-);
-
-router.post(
-  "/login", 
-  validate(loginSchema), 
-  loginController
-);
-
-router.get(
-  "/me", 
-  authenticate, 
-  getCurrentUserController
-);
+router.post("/register", authLimiter, registerController);
+router.post("/login", authLimiter, loginController);
+router.get("/me", authenticate, getCurrentUserController);
 
 export default router;

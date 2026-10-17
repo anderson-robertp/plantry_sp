@@ -17,6 +17,7 @@ import { registerMealPlanPaths } from "./mealPlanPaths.js";
 import { registerAuthPaths } from "./authPaths.js";
 import { registerIngredientPaths } from "./ingredientPaths.js";
 import { registerHouseholdPaths } from "./householdPaths.js";
+import { registerRecipeMatchPaths } from "./recipeMatchPaths.js";
 
 import { objectIdSchema } from "../validation/common.js";
 
@@ -35,9 +36,11 @@ const bearerAuth = registry.registerComponent(
 const security = [{ [bearerAuth.name]: [] }];
 registerAuthPaths(registry, security);
 registerHouseholdPaths(registry, security)
-registerRecipePaths(registry, security);
-registerMealPlanPaths(registry, security);
 registerIngredientPaths(registry, security);
+registerRecipePaths(registry, security);
+registerRecipeMatchPaths(registry, security)
+registerMealPlanPaths(registry, security);
+
 
 // Register reusable request schemas.
 const CreatePantryItem = registry.register(

@@ -1,6 +1,6 @@
 import { CookLog } from "../models/cookLog.js";
 import { MealPlan } from "../models/mealPlan.js";
-import { PantryItem } from "../models/pantryItemModel.js";
+import { PantryItem } from "../models/pantryItem.js";
 import { Recipe } from "../models/recipe.js";
 import { AppError, NotFoundError } from "../utils/errors.js";
 import type { Unit } from "../utils/units.js";
@@ -9,6 +9,8 @@ import { buildShoppingList, type RecipeInput } from "./buildShoppingList.js";
 import { loadIngredientInfoMap } from "./ingredientInfo.js";
 import { consumePipeline, restorePipeline } from "./pantryUpdates.js";
 import { planConsumption, type PantryBatch } from "./planConsumption.js";
+import type { Location } from "../utils/constants.js";
+import mongoose, { Types } from "mongoose";
 
 const EPS = 1e-6;
 const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
@@ -21,19 +23,19 @@ interface PantryRow {
   unit: string;
   baseQuantity: number;
   expirationDate?: Date | null | undefined;
-  location?: string | undefined;
+  location?: Location | undefined;
   createdAt?: Date | undefined;
 }
 
 /** One pantry batch (or part of one) that was used, as saved on the CookLog. */
 interface ConsumedRecord {
-  pantryItemId: unknown;
-  ingredientId: unknown;
+  pantryItemId: Types.ObjectId;
+  ingredientId: Types.ObjectId;
   baseQuantity: number;
   quantity: number;
   unit: Unit;
-  expirationDate?: Date | undefined;
-  location?: string | undefined;
+  expirationDate?: Date;
+  location?: Location;
 }
 
 // ---- plan entries -------------------------------------------------------------------------------
@@ -176,8 +178,8 @@ async function consume(
       continue;
     }
     consumed.push({
-      pantryItemId: t.batchId,
-      ingredientId: t.ingredientId,
+      pantryItemId: new Types.ObjectId(t.batchId),
+      ingredientId: new Types.ObjectId(t.ingredientId),
       baseQuantity: t.take,
       quantity: round6(t.take * (row.quantity / row.baseQuantity)),
       unit: row.unit as Unit,

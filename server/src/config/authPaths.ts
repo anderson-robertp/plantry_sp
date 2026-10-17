@@ -1,5 +1,5 @@
 import type { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
-import { loginSchema, registerSchema } from "../validation/authValidation.js";
+import { loginInput, registerInput } from "../validation/auth.js";
 
 type Security = Record<string, string[]>[];
 
@@ -10,8 +10,8 @@ type Security = Record<string, string[]>[];
 const base = "/api/auth";
 
 export function registerAuthPaths(registry: OpenAPIRegistry, security: Security): void {
-  const Register = registry.register("Register", registerSchema);
-  const Login = registry.register("Login", loginSchema);
+  const Register = registry.register("Register", registerInput);
+  const Login = registry.register("Login", loginInput);
   const tags = ["Auth"];
 
   registry.registerPath({
@@ -21,6 +21,7 @@ export function registerAuthPaths(registry: OpenAPIRegistry, security: Security)
       201: { description: "Account created" },
       409: { description: "Email already registered" },
       422: { description: "Validation failed" },
+      429: { description: "Too many attempts" },
     },
   });
   registry.registerPath({
@@ -28,7 +29,7 @@ export function registerAuthPaths(registry: OpenAPIRegistry, security: Security)
     request: { body: { content: { "application/json": { schema: Login } } } },
     responses: {
       200: { description: "Logged in; the response contains the token to paste into Authorize" },
-      401: { description: "Invalid credentials" },
+      401: { description: "Invalid email or password" },
       422: { description: "Validation failed" },
     },
   });

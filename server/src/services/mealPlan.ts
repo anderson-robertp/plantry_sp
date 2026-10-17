@@ -11,7 +11,7 @@ import {
 } from "../validation/mealPlan.js";
 
 /** Every recipe in a plan must belong to the household (save a global recipe first to plan it). */
-async function assertRecipesBelongToHousehold(
+export async function assertRecipesBelongToHousehold(
   householdId: string,
   entries: readonly { recipeId: string }[]
 ) {

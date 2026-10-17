@@ -1,106 +1,34 @@
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import User from "../models/user.js";
+import { loadConfig } from "../config/env.js";
+import { signToken } from "../utils/jwt.js";
+import { createAuthService, type UserRecord } from "./authCore.js";
 
-interface AuthResult {
-  token: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
+const config = loadConfig();
+const COST = 12;
 
-export async function registerUser(
-  name: string,
-  email: string,
-  password: string
-): Promise<AuthResult> {
-  const existingUser = await User.findOne({
-    email: email.toLowerCase(),
-  });
+const toRecord = (u: { _id: unknown; username: string; email: string; passwordHash: string }): UserRecord => ({
+  id: String(u._id),
+  username: u.username,
+  email: u.email,
+  passwordHash: u.passwordHash,
+});
 
-  if (existingUser) {
-    throw new Error("A user with that email already exists");
-  }
+let dummy: Promise<string> | undefined;
 
-  const passwordHash = await bcrypt.hash(password, 12);
-
-  const user = await User.create({
-    username: name,
-    email: email.toLowerCase(),
-    passwordHash,
-  });
-
-  const token = createToken(user.id);
-
-  return {
-    token,
-    user: {
-      id: user.id,
-      name: user.username,
-      email: user.email,
-    },
-  };
-}
-
-export async function loginUser(
-  email: string,
-  password: string
-): Promise<AuthResult> {
-  const user = await User.findOne({
-    email: email.toLowerCase(),
-  });
-
-  if (!user) {
-    throw new Error("Invalid email or password");
-  }
-
-  const passwordMatches = await bcrypt.compare(
-    password,
-    user.passwordHash
-  );
-
-  if (!passwordMatches) {
-    throw new Error("Invalid email or password");
-  }
-
-  const token = createToken(user.id);
-
-  return {
-    token,
-    user: {
-      id: user.id,
-      name: user.username,
-      email: user.email,
-    },
-  };
-}
-
-function createToken(userId: string): string {
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("JWT_SECRET is not defined");
-  }
-
-  return jwt.sign(
-    { userId },
-    secret,
-    {
-      expiresIn: "7d",
-    }
-  );
-}
-
-export async function getUserById(userId: string) {
-  const user = await User.findById(userId).select(
-    "-passwordHash"
-  );
-
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  return user;
-}
+export const { registerUser, loginUser, getUserById } = createAuthService({
+  findByEmail: async (email) => {
+    const u = await User.findOne({ email });
+    return u ? toRecord(u) : null;
+  },
+  findById: async (id) => {
+    const u = await User.findById(id);
+    return u ? toRecord(u) : null;
+  },
+  create: async (data) => toRecord(await User.create(data)),
+  hash: (password) => bcrypt.hash(password, COST),
+  compare: (password, hash) => bcrypt.compare(password, hash),
+  signToken: (id) => signToken(id, config.jwtSecret),
+  isDuplicateKey: (e) => typeof e === "object" && e !== null && (e as { code?: number }).code === 11000,
+  dummyHash: () => (dummy ??= bcrypt.hash("plantry-dummy-password", COST)),
+});

@@ -1,73 +1,30 @@
-import { Request, Response, NextFunction } from "express";
-import {
-  registerUser,
-  loginUser,
-  getUserById,
-} from "../services/auth.js";
+import type { NextFunction, Request, Response } from "express";
+import { loginInput, registerInput } from "../validation/auth.js";
+import { getUserById, loginUser, registerUser } from "../services/auth.js";
+import { AppError } from "../utils/errors.js";
 
-
-export async function registerController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+export async function registerController(req: Request, res: Response, next: NextFunction) {
   try {
-    const { name, email, password } = req.body;
-
-    if (!name || !email || !password) {
-      res.status(400).json({
-        message: "name, email, and password are required",
-      });
-      return;
-    }
-
-    const result = await registerUser(name, email, password);
-
-    res.status(201).json(result);
+    const { name, email, password } = registerInput.parse(req.body);
+    res.status(201).json(await registerUser(name, email, password));
   } catch (error) {
     next(error);
   }
 }
 
-export async function loginController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+export async function loginController(req: Request, res: Response, next: NextFunction) {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      res.status(400).json({
-        message: "email and password are required",
-      });
-      return;
-    }
-
-    const result = await loginUser(email, password);
-
-    res.json(result);
+    const { email, password } = loginInput.parse(req.body);
+    res.json(await loginUser(email, password));
   } catch (error) {
     next(error);
   }
 }
 
-export async function getCurrentUserController(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+export async function getCurrentUserController(req: Request, res: Response, next: NextFunction) {
   try {
-    if (!req.userId) {
-      res.status(401).json({
-        message: "Authentication required",
-      });
-      return;
-    }
-
-    const user = await getUserById(req.userId);
-
-    res.json(user);
+    if (!req.userId) throw new AppError("Authentication required", 401, "unauthenticated");
+    res.json({ user: await getUserById(req.userId) });
   } catch (error) {
     next(error);
   }

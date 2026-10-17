@@ -16,7 +16,7 @@ async function startServer() {
 
         app.listen(PORT, () => {
             console.log(`Plantry API is running on port ${PORT}`);
-            console.log(`Health check endpoint available at http://localhost:${PORT}/api/health`);
+            console.log(`Health check endpoint available at http://localhost:${PORT}/health`);
             console.log(`Swagger UI available at http://localhost:${PORT}/api-docs`);
         });
     } catch (error) {
