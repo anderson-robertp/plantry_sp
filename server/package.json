@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node dist/index.js",
+    "start": "node src/server.ts",
     "dev": "tsx watch --import ./src/config/zod-extend.ts src/server.ts",
     "build": "tsc",
     "swagger": "node src/config/swagger.ts",
