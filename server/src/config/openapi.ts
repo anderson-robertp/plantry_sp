@@ -165,5 +165,9 @@ export const openApiDocument =
         url: "http://localhost:3000",
         description: "Local development",
       },
+      {
+        url: "https://plantry-sp.onrender.com:10000",
+        description: "Production Server"
+      }
     ],
   });
