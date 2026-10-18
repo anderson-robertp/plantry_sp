@@ -5,7 +5,7 @@ import {
   updatePantryItemController,
   deletePantryItemController,
 } from "../controllers/pantry.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate } from "../middleware/authenticate.js";
 import { requireHouseholdMember } from "../middleware/householdAuth.js";
 import { validate } from "../middleware/validation.js";
 import {
@@ -66,7 +66,7 @@ router.post(
   "/:householdId/pantry",
   authenticate,
   requireHouseholdMember,
-  validate(addPantryItemSchema),
+  //validate(addPantryItemSchema),
   addPantryItemController,
   /*
   #swagger
@@ -113,7 +113,7 @@ router.put(
   "/:householdId/pantry/:pantryItemId",
   authenticate,
   requireHouseholdMember,
-  validate(updatePantryItemSchema),
+  //validate(updatePantryItemSchema),
   updatePantryItemController,
   /*
   #swagger

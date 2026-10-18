@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { matchRecipesController, recipeAvailabilityController } from "../controllers/recipeMatch.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate } from "../middleware/authenticate.js";
 import { requireHouseholdMember } from "../middleware/householdAuth.js";
 
 const router = Router();

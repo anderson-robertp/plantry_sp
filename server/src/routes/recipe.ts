@@ -7,7 +7,7 @@ import {
   deleteRecipeController,
   saveGlobalRecipeController,
 } from "../controllers/recipe.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate } from "../middleware/authenticate.js";
 import { requireHouseholdMember } from "../middleware/householdAuth.js";
 
 const router = Router();

@@ -8,4 +8,5 @@ export default {
   transform: { "^.+\\.ts$": ["ts-jest", { useESM: true }] },
   testMatch: ["**/*.test.ts"],
   testTimeout: 30000,
+  setupFiles: ["<rootDir>/src/config/zod-extend.ts"],
 };

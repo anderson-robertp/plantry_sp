@@ -4,7 +4,7 @@ import {
   removePlanEntryController,
   updatePlanEntryController,
 } from "../controllers/mealPlanEntryController.js";
-import { authenticate } from "../middleware/auth.js";
+import { authenticate } from "../middleware/authenticate.js";
 import { requireHouseholdMember } from "../middleware/householdAuth.js";
 
 const router = Router();

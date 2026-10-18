@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import request from "supertest";
 
+
 /**
  * The whole product, start to finish, against a real (in-memory) MongoDB and the real Express app:
  * sign up, pantry, recipes, matching, a meal plan, a shopping list you can edit, cooking, undo, and
@@ -55,6 +56,7 @@ beforeAll(async () => {
   process.env.JWT_SECRET = "e2e-secret-e2e-secret-e2e-secret-1234";
   process.env.MONGODB_URI = mongod.getUri("plantry_e2e");
   await mongoose.connect(process.env.MONGODB_URI);
+  await import("../config/zod-extend.js");
   const mod = await import("../app.js"); // after the env is set, because config is read on import
   api = request((mod as Json).app ?? (mod as Json).default);
 }, 120_000);

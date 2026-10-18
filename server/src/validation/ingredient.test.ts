@@ -24,7 +24,7 @@ describe("createIngredientInput", () => {
 
   it("rejects bad category, base unit type, zero/negative density, and blank names", () => {
     for (const bad of [
-      { category: "bakery" },
+      { category: "not_a_catagory" },
       { baseUnitType: "weight" },
       { gramsPerMl: 0 },
       { gramsPerPiece: -1 },

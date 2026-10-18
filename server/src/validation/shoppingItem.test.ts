@@ -13,7 +13,7 @@ describe("createCustomItemInput", () => {
     });
   });
   it("rejects blank names, bad quantities, unknown units/categories, and a unit without a quantity", () => {
-    for (const bad of [{}, { name: "  " }, { name: "x", quantity: 0 }, { name: "x", quantity: -1 }, { name: "x", quantity: "2" }, { name: "x", quantity: 1, unit: "bushel" }, { name: "x", category: "bakery" }, { name: "x", unit: "g" }, { name: "x".repeat(101) }]) {
+    for (const bad of [{}, { name: "  " }, { name: "x", quantity: 0 }, { name: "x", quantity: -1 }, { name: "x", quantity: "2" }, { name: "x", quantity: 1, unit: "bushel" }, { name: "x", category: "not_a_catagory" }, { name: "x", unit: "g" }, { name: "x".repeat(101) }]) {
       expect(createCustomItemInput.safeParse(bad).success).toBe(false);
     }
   });
