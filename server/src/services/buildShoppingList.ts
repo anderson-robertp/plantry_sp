@@ -346,10 +346,11 @@ export function groupByAisle<T extends { category: string; name: string }>(
  * When a list is regenerated, keep the check marks the shopper already made:
  * an item stays checked if it was checked before; anything new starts unchecked.
  */
-export function carryOverChecked<T extends { ingredientId: string | mongoose.Types.ObjectId }>(
+export function carryOverChecked<T extends { ingredientId: string }>(
   next: readonly T[],
-  previous: readonly { ingredientId: string | mongoose.Types.ObjectId; checked?: boolean | undefined }[]
+  previous: readonly { ingredientId: string | { toString(): string }; checked?: boolean | undefined }[]
 ): (T & { checked: boolean })[] {
-  const checked = new Set(previous.filter((p) => p.checked === true).map((p) => p.ingredientId));
+  // saved rows hold ObjectIds, fresh ones hold strings: compare as strings
+  const checked = new Set(previous.filter((p) => p.checked === true).map((p) => String(p.ingredientId)));
   return next.map((item) => ({ ...item, checked: checked.has(item.ingredientId) }));
 }
