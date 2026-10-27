@@ -171,7 +171,8 @@ async function consume(
     if (!row) continue;
     const res = await PantryItem.updateOne(
       { _id: t.batchId, householdId, baseQuantity: { $gte: t.take - EPS } },
-      consumePipeline(t.take)
+      consumePipeline(t.take),
+      { updatePipeline: true }
     );
     if (res.matchedCount !== 1) {
       missed.set(t.ingredientId, (missed.get(t.ingredientId) ?? 0) + t.take); // changed under us
@@ -234,7 +235,8 @@ async function restoreConsumed(
   for (const c of consumed) {
     const res = await PantryItem.updateOne(
       { _id: c.pantryItemId, householdId },
-      restorePipeline(c.baseQuantity, c.quantity)
+      restorePipeline(c.baseQuantity, c.quantity),
+      { updatePipeline: true }
     );
     if (res.matchedCount === 0) {
       await PantryItem.create({

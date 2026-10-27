@@ -21,6 +21,8 @@ import { registerRecipeMatchPaths } from "./recipeMatchPaths.js";
 import { objectIdSchema } from "../validation/common.js";
 import { registerShoppingItemPaths } from "./shoppingItemPaths.js";
 import { registerDashboardPaths } from "./dashboardPaths.js";
+import { registerCookPaths } from "./cookPaths.js";
+//import { registerMealPlanPaths } from "./mealPlanPaths.js";
 
 export const registry = new OpenAPIRegistry();
 
@@ -43,7 +45,7 @@ registerRecipePaths(registry, security);
 registerRecipeMatchPaths(registry, security);
 registerMealPlanPaths(registry, security);
 registerShoppingItemPaths(registry, security);
-
+registerCookPaths(registry, security);
 
 // Register reusable request schemas.
 const CreatePantryItem = registry.register(

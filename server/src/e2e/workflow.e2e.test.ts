@@ -38,6 +38,7 @@ let api: ReturnType<typeof request>;
 const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
 const idOf = (o: Json): string => String(o._id ?? o.id);
 const asList = (b: Json | Json[]): Json[] => (Array.isArray(b) ? b : (b.items as Json[]));
+const ingredientOf = (r: Json): string => String(r.ingredientId?._id ?? r.ingredientId);
 
 // shared state
 let token = "";
@@ -291,7 +292,7 @@ describe("7. cooking and undo", () => {
     expect(res.body.cookLog.shortfalls[0]).toMatchObject({ name: "Tomato", baseQuantity: 1 });
 
     const rows = asList((await api.get(P.pantry(household)).set(auth(token))).body);
-    const byIngredient = new Map(rows.map((r) => [String(r.ingredientId), r]));
+    const byIngredient = new Map(rows.map((r) => [ingredientOf(r), r]));
     expect(byIngredient.get(ing.pasta)).toMatchObject({ quantity: 100 });
     expect(byIngredient.has(ing.tomato)).toBe(false); // used up completely
     expect(byIngredient.has(ing.cheese)).toBe(false);
@@ -328,7 +329,7 @@ describe("7. cooking and undo", () => {
 
     const rows = asList((await api.get(P.pantry(household)).set(auth(token))).body);
     expect(rows).toHaveLength(4);
-    const by = new Map(rows.map((r) => [String(r.ingredientId), r]));
+    const by = new Map(rows.map((r) => [ingredientOf(r), r]));
     expect(by.get(ing.pasta)).toMatchObject({ quantity: 500 });
     expect(by.get(ing.tomato)).toMatchObject({ quantity: 3 });
     expect(by.get(ing.cheese)).toMatchObject({ quantity: 100 });

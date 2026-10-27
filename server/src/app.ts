@@ -14,6 +14,8 @@ import ingredientRoutes from "./routes/ingredient.js";
 import recipeMatchRoutes from "./routes/recipeMatch.js"
 import shoppingItemRoutes from "./routes/shoppingItem.js"
 import dashboardRoutes from "./routes/dashboard.js"
+import cookRoutes from "./routes/cookRoutes.js"
+import mealPlanEntryRoutes from "./routes/mealPlanEntryRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import swaggerUi from "swagger-ui-express";
 import { openApiDocument } from "./config/openapi.js";
@@ -47,6 +49,8 @@ app.use("/api/households", mealPlanRoutes);
 app.use("/api/households", recipeRoutes);
 app.use("/api/households", ingredientRoutes);
 app.use("/api/households", shoppingItemRoutes)
+app.use("/api/households", cookRoutes)
+app.use("/api/households", mealPlanEntryRoutes);
 app.use("/api/households", dashboardRoutes)
 
 

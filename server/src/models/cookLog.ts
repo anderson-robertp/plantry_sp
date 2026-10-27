@@ -51,7 +51,7 @@ const consumedSchema = new Schema<ICookConsumed>(
     quantity: { type: Number, required: true, min: 0 },
     unit: { type: String, enum: CANONICAL_UNITS, required: true },
     expirationDate: { type: Date },
-    location: { type: LOCATIONS },
+    location: { type: String, enum: LOCATIONS },
   },
   { _id: false }
 );

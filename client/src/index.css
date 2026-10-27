@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+/* Colors are tokens so light and dark share one set of class names. */
+:root {
+  --bg: #f3f5f1;
+  --surface: #ffffff;
+  --ink: #1c2420;
+  --muted: #5d6a63;
+  --line: #d9dfd8;
+  --accent: #2c6b4d;
+  --accent-ink: #ffffff;
+  --soft: #eaf0ea;
+  --warn: #8a5a00;
+  --warn-bg: #fff0c9;
+  --bad: #a33a2b;
+  --bad-bg: #fbe3df;
+  --good: #1f6b43;
+  --good-bg: #dcf2e4;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141a17;
+    --surface: #1c2420;
+    --ink: #e8eee9;
+    --muted: #98a69d;
+    --line: #2e3a34;
+    --accent: #6fcf9b;
+    --accent-ink: #0f1a14;
+    --soft: #243029;
+    --warn: #ffd98a;
+    --warn-bg: #4a3d12;
+    --bad: #ffb4a8;
+    --bad-bg: #4a211b;
+    --good: #9fe3bd;
+    --good-bg: #17382a;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-soft: var(--soft);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-bad: var(--bad);
+  --color-bad-bg: var(--bad-bg);
+  --color-good: var(--good);
+  --color-good-bg: var(--good-bg);
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
