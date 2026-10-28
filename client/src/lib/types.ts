@@ -93,3 +93,107 @@ export interface MatchResponse {
 
 /** Lists come back either as a bare array or wrapped as { items }. */
 export type Listed<T> = T[] | { items: T[] };
+
+export type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+
+export interface MealPlanEntry {
+  _id: string;
+  date: string;
+  slot: MealSlot;
+  recipeId: Ref;
+  servings: number;
+  cookedAt?: string;
+}
+
+export interface MealPlan {
+  _id: string;
+  name?: string;
+  startDate: string;
+  endDate: string;
+  entries: MealPlanEntry[];
+}
+
+export interface ShoppingItem {
+  ingredientId: string;
+  name: string;
+  category: string;
+  needed: number;
+  have: number;
+  toBuy: number;
+  display: { unit: Unit; needed: number; have: number; toBuy: number };
+  checked: boolean;
+  note?: string;
+}
+
+export interface CustomShoppingItem {
+  _id: string;
+  name: string;
+  category?: string;
+  quantity?: number;
+  unit?: Unit;
+  note?: string;
+  checked: boolean;
+}
+
+export interface ShoppingList {
+  _id: string;
+  planId: string;
+  generatedAt: string;
+  items: ShoppingItem[];
+  covered: ShoppingItem[];
+  staples: ShoppingItem[];
+  extraItems?: CustomShoppingItem[];
+  warnings: { code: string; message: string }[];
+}
+
+export interface CookLog {
+  _id: string;
+  recipeId: string;
+  recipeName: string;
+  servings: number;
+  cookedAt: string;
+  planId?: string;
+  entryId?: string;
+  shortfalls: { ingredientId: string; name: string }[];
+  undoneAt?: string;
+}
+
+export interface CookResult {
+  cookLog: CookLog;
+  warnings: { message: string }[];
+}
+
+export interface ExpiryRow {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  location?: string;
+  expirationDate: string;
+  daysLeft: number;
+}
+
+export interface UpcomingMeal {
+  planId: string;
+  planName?: string;
+  entryId: string;
+  date: string;
+  slot: MealSlot;
+  recipeId: string;
+  recipeName: string;
+  servings: number;
+  cooked: boolean;
+}
+
+export interface Dashboard {
+  today: string;
+  pantry: {
+    itemCount: number;
+    expiringSoon: { withinDays: number; count: number; items: ExpiryRow[] };
+    expired: { count: number; items: ExpiryRow[] };
+  };
+  upcomingMeals: { plannedCount: number; cookedCount: number; meals: UpcomingMeal[] };
+  shoppingList: { planId: string; planName?: string; total: number; checked: number; remaining: number; percentDone: number } | null;
+  recentCooks: { id: string; recipeName: string; servings: number; cookedAt: string }[];
+  recipes: { count: number; cookableNow: number };
+}

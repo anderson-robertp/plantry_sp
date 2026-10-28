@@ -50,3 +50,16 @@ describe("dates", () => {
     expect(expiryInfo("2026-10-21T00:00:00.000Z", t)).toEqual({ text: "Expires 2026-10-21", tone: "ok" });
   });
 });
+
+import { addDays, eachDay } from "./format";
+describe("date helpers", () => {
+  it("adds days across month and year ends", () => {
+    expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+    expect(addDays("2028-02-28", 1)).toBe("2028-02-29");
+  });
+  it("lists days inclusive", () => {
+    expect(eachDay("2026-10-30", "2026-11-02")).toEqual(["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"]);
+    expect(eachDay("2026-10-30", "2026-10-30")).toHaveLength(1);
+  });
+});

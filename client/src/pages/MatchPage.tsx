@@ -4,11 +4,29 @@ import { Badge, Button, EmptyState, ErrorBanner, Loading, PageHeader } from "../
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/client";
 import { amount, localToday } from "../lib/format";
-import type { MatchResponse } from "../lib/types";
+import { messageOf } from "../lib/api";
+import type { CookResult, MatchResponse } from "../lib/types";
 
 export function MatchPage() {
   const { household } = useHousehold();
   const [cookableOnly, setCookableOnly] = useState(false);
+  const [cooking, setCooking] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const cookNow = async (recipeId: string, name: string, servings: number) => {
+    setCooking(recipeId);
+    setProblem(null);
+    try {
+      await api.post<CookResult>(`/api/households/${household._id}/recipes/${recipeId}/cook`, { servings, today: localToday() });
+      setNotice(`Cooked ${name}. Your pantry has been updated.`);
+      reload();
+    } catch (e) {
+      setProblem(messageOf(e));
+    } finally {
+      setCooking(null);
+    }
+  };
   const { data, error, loading, reload } = useAsync(
     () =>
       api.get<MatchResponse>(`/api/households/${household._id}/recipes/match`, {
@@ -32,6 +50,16 @@ export function MatchPage() {
         }
       />
 
+      {notice ? (
+        <p role="status" className="mb-3 rounded-md bg-good-bg px-3 py-2 text-sm text-good">
+          {notice}
+        </p>
+      ) : null}
+      {problem ? (
+        <p role="alert" className="mb-3 text-sm text-bad">
+          {problem}
+        </p>
+      ) : null}
       {loading && !data ? <Loading label="Checking your pantry…" /> : null}
       {error ? <ErrorBanner error={error} onRetry={reload} /> : null}
       {data && data.matches.length === 0 ? (
@@ -51,7 +79,16 @@ export function MatchPage() {
                   You have {m.haveCount} of {m.totalIngredients} ingredients
                 </p>
               </div>
-              {m.canCook ? <Badge tone="good">Ready to cook</Badge> : <Badge tone="warn">{Math.round(m.coverage * 100)}% covered</Badge>}
+              {m.canCook ? (
+                <div className="flex items-center gap-2">
+                  <Badge tone="good">Ready to cook</Badge>
+                  <Button disabled={cooking === m.recipeId} onClick={() => cookNow(m.recipeId, m.name, m.servings)}>
+                    {cooking === m.recipeId ? "Cooking…" : "Cook this"}
+                  </Button>
+                </div>
+              ) : (
+                <Badge tone="warn">{Math.round(m.coverage * 100)}% covered</Badge>
+              )}
             </div>
             {m.missing.length > 0 ? (
               <div className="mt-3 border-t border-line pt-3">

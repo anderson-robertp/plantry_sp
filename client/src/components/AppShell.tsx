@@ -4,9 +4,11 @@ import { useHousehold } from "../auth/HouseholdContext";
 import { Button } from "./ui";
 
 const links = [
+  { to: "/", label: "Home", end: true },
   { to: "/pantry", label: "Pantry" },
   { to: "/recipes", label: "Recipes" },
   { to: "/match", label: "What can I cook?" },
+  { to: "/plans", label: "Meal plans" },
 ];
 
 export function AppShell() {
@@ -48,6 +50,7 @@ export function AppShell() {
             <NavLink
               key={l.to}
               to={l.to}
+              end={"end" in l}
               className={({ isActive }) =>
                 `whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium ${
                   isActive ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink"

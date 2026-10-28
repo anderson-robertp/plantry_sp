@@ -74,3 +74,35 @@ export function expiryInfo(date: string | null | undefined, today: string = loca
 export function amount(quantity: number, unit: string): string {
   return `${formatQty(quantity)} ${unitLabel(unit)}`;
 }
+
+const parseDay = (d: string): Date => {
+  const [y, m, day] = d.split("-").map(Number);
+  return new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, day ?? 1));
+};
+const fmtDay = (dt: Date): string => dt.toISOString().slice(0, 10);
+
+/** "2026-10-26" plus n days, calendar arithmetic with no time-zone drift. */
+export function addDays(date: string, n: number): string {
+  const dt = parseDay(date);
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return fmtDay(dt);
+}
+
+/** Every day from start to end inclusive. */
+export function eachDay(start: string, end: string): string[] {
+  const out: string[] = [];
+  for (let d = start; d <= end && out.length < 70; d = addDays(d, 1)) out.push(d);
+  return out;
+}
+
+/** "Mon, Oct 26" */
+export function dayLabel(date: string): string {
+  return parseDay(date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+export const MEAL_SLOTS = [
+  { value: "breakfast", label: "Breakfast" },
+  { value: "lunch", label: "Lunch" },
+  { value: "dinner", label: "Dinner" },
+  { value: "snack", label: "Snack" },
+] as const;
