@@ -9,6 +9,7 @@ const links = [
   { to: "/recipes", label: "Recipes" },
   { to: "/match", label: "What can I cook?" },
   { to: "/plans", label: "Meal plans" },
+  { to: "/shopping", label: "Shopping" },
 ];
 
 export function AppShell() {

@@ -28,12 +28,19 @@ export interface Membership {
   householdId: Household | string;
 }
 
+export interface PackageDef {
+  label: string;
+  size: number;
+  unit: Unit;
+}
+
 export interface Ingredient {
   _id: string;
   name: string;
   category?: string;
   baseUnitType: BaseUnitType;
   defaultUnit?: Unit;
+  package?: PackageDef | null;
   householdId?: string | null;
 }
 
@@ -121,6 +128,8 @@ export interface ShoppingItem {
   have: number;
   toBuy: number;
   display: { unit: Unit; needed: number; have: number; toBuy: number };
+  /** Present when the ingredient has a package size: whole packages to buy. */
+  package?: PackageDef & { count: number; exact: number };
   checked: boolean;
   note?: string;
 }

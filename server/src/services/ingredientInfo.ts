@@ -19,7 +19,7 @@ export async function loadIngredientInfoMap(
     _id: { $in: unique },
     householdId: { $in: [null, new Types.ObjectId(householdId)] },
   })
-    .select("name category isStaple baseUnitType")
+    .select("name category isStaple baseUnitType package")
     .lean();
 
   const map = new Map<string, IngredientInfo>();
@@ -29,6 +29,7 @@ export async function loadIngredientInfoMap(
       category: d.category,
       isStaple: d.isStaple,
       baseUnitType: d.baseUnitType,
+      package: d.package ?? null,
     });
   }
   return map;

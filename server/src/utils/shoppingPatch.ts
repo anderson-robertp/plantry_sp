@@ -48,12 +48,13 @@ export function customPatchOps(patch: UpdateCustomItemInput) {
 
 /** An edited quantity changes what's shown to buy and marks the item as hand-adjusted. */
 export function generatedPatchOps(patch: UpdateGeneratedItemInput) {
-  const adjusts = patch.quantity !== undefined;
+  const adjusts = patch.quantity !== undefined || patch.packageCount !== undefined;
   return patchOps("items.$.", {
     checked: patch.checked,
     note: patch.note,
     "display.toBuy": patch.quantity,
     "display.unit": patch.unit,
+    "package.count": patch.packageCount,
     adjusted: adjusts ? true : undefined,
   });
 }

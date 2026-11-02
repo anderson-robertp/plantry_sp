@@ -4,7 +4,7 @@ import { IngredientPicker, type PickedIngredient } from "../components/Ingredien
 import { Badge, Button, Card, EmptyState, ErrorBanner, Field, inputCls, Loading, PageHeader, type Tone } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
 import { useIngredientNames } from "../hooks/useIngredientNames";
-import { fieldErrors, messageOf } from "../lib/api";
+import { ApiError, fieldErrors, messageOf } from "../lib/api";
 import { api } from "../lib/client";
 import { amount, asList, expiryInfo, LOCATIONS, refId, refName, UNITS } from "../lib/format";
 import type { Listed, Location, PantryItem, Unit } from "../lib/types";
@@ -197,8 +197,15 @@ function PantryForm({
     try {
       if (existing) {
         const url = `/api/households/${householdId}/pantry/${existing._id}`;
-        if (UPDATE_METHOD === "PUT") await api.put(url, body);
-        else await api.patch(url, body);
+        const first = UPDATE_METHOD === "PUT" ? api.put : api.patch;
+        const second = UPDATE_METHOD === "PUT" ? api.patch : api.put;
+        try {
+          await first(url, body);
+        } catch (err) {
+          // A 404 here can mean the route uses the other method. Try it once before giving up.
+          if (err instanceof ApiError && err.status === 404) await second(url, body);
+          else throw err;
+        }
       } else {
         await api.post(`/api/households/${householdId}/pantry`, { ingredientId: ingredient!.id, ...body });
       }
@@ -217,7 +224,15 @@ function PantryForm({
       {existing ? (
         <p className="font-medium">{existingName}</p>
       ) : (
-        <IngredientPicker householdId={householdId} value={ingredient} onChange={setIngredient} error={fe.ingredientId} />
+        <IngredientPicker
+          householdId={householdId}
+          value={ingredient}
+          onChange={(ing) => {
+            setIngredient(ing);
+            if (ing?.baseUnitType) setUnit(ing.baseUnitType === "count" ? "piece" : ing.baseUnitType === "volume" ? "ml" : "g");
+          }}
+          error={fe.ingredientId}
+        />
       )}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Field label="Amount" htmlFor="qty" error={fe.quantity}>

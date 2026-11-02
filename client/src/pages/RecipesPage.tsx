@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useHousehold } from "../auth/HouseholdContext";
 import { IngredientPicker, type PickedIngredient } from "../components/IngredientPicker";
 import { Badge, Button, Card, EmptyState, ErrorBanner, Field, inputCls, Loading, PageHeader } from "../components/ui";
@@ -13,13 +13,17 @@ export function RecipesPage() {
   const { household } = useHousehold();
   const base = `/api/households/${household._id}/recipes`;
   const [search, setSearch] = useState("");
+  const [tag, setTag] = useState<string | null>(null);
   const { data, error, loading, reload } = useAsync(
     () => api.get<Listed<Recipe>>(base, { search: search.trim() || undefined, limit: 100 }),
     [base, search]
   );
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
-  const recipes = useMemo(() => asList(data), [data]);
+  const [editing, setEditing] = useState<string | null>(null);
+  const all = useMemo(() => asList(data), [data]);
+  const allTags = useMemo(() => [...new Set(all.flatMap((r) => r.tags ?? []))].sort(), [all]);
+  const recipes = useMemo(() => (tag ? all.filter((r) => (r.tags ?? []).includes(tag)) : all), [all, tag]);
 
   return (
     <>
@@ -55,11 +59,24 @@ export function RecipesPage() {
         />
       </div>
 
+      {allTags.length > 0 ? (
+        <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter by tag">
+          <TagChip active={tag === null} onClick={() => setTag(null)}>
+            All
+          </TagChip>
+          {allTags.map((t) => (
+            <TagChip key={t} active={tag === t} onClick={() => setTag(tag === t ? null : t)}>
+              {t}
+            </TagChip>
+          ))}
+        </div>
+      ) : null}
+
       {loading && !data ? <Loading /> : null}
       {error ? <ErrorBanner error={error} onRetry={reload} /> : null}
       {!loading && !error && recipes.length === 0 ? (
-        search ? (
-          <EmptyState title="No recipes match" body="Try a different word, or clear the search." />
+        search || tag ? (
+          <EmptyState title="No recipes match" body="Try a different word, or clear the search and tag filter." />
         ) : (
           <EmptyState
             title="No recipes yet"
@@ -76,17 +93,40 @@ export function RecipesPage() {
               <button type="button" className="min-w-0 text-left" onClick={() => setOpen(open === r._id ? null : r._id)} aria-expanded={open === r._id}>
                 <span className="block truncate font-medium">{r.name}</span>
                 <span className="text-sm text-muted">
-                  Serves {r.servings} &middot; {(r.ingredients ?? []).length} ingredient{(r.ingredients ?? []).length === 1 ? "" : "s"}
+                  Serves {r.servings}
                 </span>
               </button>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" onClick={() => setOpen(open === r._id ? null : r._id)}>
                   {open === r._id ? "Hide" : "View"}
                 </Button>
+                <Button variant="ghost" onClick={() => { setOpen(null); setEditing(editing === r._id ? null : r._id); }}>
+                  Edit
+                </Button>
                 <DeleteRecipe url={`${base}/${r._id}`} name={r.name} onDone={reload} />
               </div>
             </div>
-            {open === r._id ? <RecipeDetails householdId={household._id} recipe={r} /> : null}
+            {(r.tags ?? []).length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {(r.tags ?? []).map((t) => (
+                  <Badge key={t}>{t}</Badge>
+                ))}
+              </div>
+            ) : null}
+            {editing === r._id ? (
+              <div className="mt-3 border-t border-line pt-3">
+                <EditRecipe
+                  householdId={household._id}
+                  url={`${base}/${r._id}`}
+                  onCancel={() => setEditing(null)}
+                  onSaved={() => {
+                    setEditing(null);
+                    reload();
+                  }}
+                />
+              </div>
+            ) : null}
+            {open === r._id && editing !== r._id ? <RecipeDetails householdId={household._id} url={`${base}/${r._id}`} /> : null}
           </li>
         ))}
       </ul>
@@ -94,31 +134,56 @@ export function RecipesPage() {
   );
 }
 
-function RecipeDetails({ householdId, recipe }: { householdId: string; recipe: Recipe }) {
+function TagChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1 text-xs font-medium ${
+        active ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface text-muted hover:text-ink"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function RecipeDetails({ householdId, url }: { householdId: string; url: string }) {
+  const { data: recipe, error, loading, reload } = useAsync(() => api.get<Recipe>(url), [url]);
+  const lines = recipe?.ingredients ?? [];
   const known = useMemo(() => {
     const k: Record<string, string> = {};
-    for (const l of recipe.ingredients ?? []) {
+    for (const l of lines) {
       const n = refName(l.ingredientId);
       if (n) k[refId(l.ingredientId)] = n;
     }
     return k;
-  }, [recipe]);
-  const nameOf = useIngredientNames(householdId, (recipe.ingredients ?? []).map((l) => refId(l.ingredientId)), known);
+  }, [lines]);
+  const nameOf = useIngredientNames(householdId, lines.map((l) => refId(l.ingredientId)), known);
+
+  if (loading && !recipe) return <p className="mt-3 text-sm text-muted">Loading…</p>;
+  if (error) return <div className="mt-3"><ErrorBanner error={error} onRetry={reload} /></div>;
+  if (!recipe) return null;
 
   return (
     <div className="mt-3 grid gap-3 border-t border-line pt-3 text-sm sm:grid-cols-2">
       <div>
         <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted">Ingredients</h3>
-        <ul className="grid gap-1">
-          {(recipe.ingredients ?? []).map((l, i) => (
-            <li key={i} className="flex justify-between gap-3">
-              <span>
-                {nameOf(refId(l.ingredientId))} {l.optional ? <Badge>optional</Badge> : null}
-              </span>
-              <span className="shrink-0 text-muted">{amount(l.quantity, l.unit)}</span>
-            </li>
-          ))}
-        </ul>
+        {lines.length === 0 ? (
+          <p className="text-muted">No ingredients on this recipe.</p>
+        ) : (
+          <ul className="grid gap-1">
+            {lines.map((l, i) => (
+              <li key={i} className="flex justify-between gap-3">
+                <span>
+                  {nameOf(refId(l.ingredientId))} {l.optional ? <Badge>optional</Badge> : null}
+                </span>
+                <span className="shrink-0 text-muted">{amount(l.quantity, l.unit)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       {recipe.steps && recipe.steps.length > 0 ? (
         <div>
@@ -132,6 +197,43 @@ function RecipeDetails({ householdId, recipe }: { householdId: string; recipe: R
       ) : null}
     </div>
   );
+}
+
+/** Loads the full recipe and the ingredient names, then shows the form filled in. */
+function EditRecipe({ householdId, url, onCancel, onSaved }: { householdId: string; url: string; onCancel: () => void; onSaved: () => void }) {
+  const { data: recipe, error, loading, reload } = useAsync(() => api.get<Recipe>(url), [url]);
+  const rawLines = recipe?.ingredients ?? [];
+  const known = useMemo(() => {
+    const k: Record<string, string> = {};
+    for (const l of rawLines) {
+      const n = refName(l.ingredientId);
+      if (n) k[refId(l.ingredientId)] = n;
+    }
+    return k;
+  }, [rawLines]);
+  const nameOf = useIngredientNames(householdId, rawLines.map((l) => refId(l.ingredientId)), known);
+
+  if (loading && !recipe) return <p className="mt-3 text-sm text-muted">Loading…</p>;
+  if (error) return <div className="mt-3"><ErrorBanner error={error} onRetry={reload} /></div>;
+  if (!recipe) return null;
+  if (rawLines.some((l) => nameOf(refId(l.ingredientId)) === "…")) return <p className="mt-3 text-sm text-muted">Loading ingredients…</p>;
+
+  const initialLines: Line[] = rawLines.map((l) => {
+    const raw = l as unknown as Record<string, unknown>;
+    const extra: Record<string, unknown> = {};
+    for (const k of ["notes", "group", "originalText"]) if (typeof raw[k] === "string" && raw[k]) extra[k] = raw[k];
+    const id = refId(l.ingredientId);
+    return {
+      key: ++lineKey,
+      ingredient: { id, name: nameOf(id) },
+      quantity: String(l.quantity),
+      unit: l.unit,
+      optional: Boolean(l.optional),
+      extra,
+    };
+  });
+
+  return <RecipeForm householdId={householdId} existing={recipe} initialLines={initialLines} onCancel={onCancel} onSaved={onSaved} />;
 }
 
 function DeleteRecipe({ url, name, onDone }: { url: string; name: string; onDone: () => void }) {
@@ -178,16 +280,32 @@ interface Line {
   quantity: string;
   unit: Unit;
   optional: boolean;
+  /** Fields this form doesn't edit (notes, group, original text) are kept as they were. */
+  extra?: Record<string, unknown>;
 }
 
+const defaultUnitFor = (t?: string): Unit => (t === "count" ? "piece" : t === "volume" ? "ml" : "g");
 let lineKey = 0;
 const newLine = (): Line => ({ key: ++lineKey, ingredient: null, quantity: "", unit: "g", optional: false });
 
-function RecipeForm({ householdId, onCancel, onSaved }: { householdId: string; onCancel: () => void; onSaved: () => void }) {
-  const [name, setName] = useState("");
-  const [servings, setServings] = useState("2");
-  const [steps, setSteps] = useState("");
-  const [lines, setLines] = useState<Line[]>([newLine()]);
+function RecipeForm({
+  householdId,
+  existing,
+  initialLines,
+  onCancel,
+  onSaved,
+}: {
+  householdId: string;
+  existing?: Recipe;
+  initialLines?: Line[];
+  onCancel: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(existing?.name ?? "");
+  const [servings, setServings] = useState(existing ? String(existing.servings) : "2");
+  const [steps, setSteps] = useState((existing?.steps ?? []).join("\n"));
+  const [tags, setTags] = useState((existing?.tags ?? []).join(", "));
+  const [lines, setLines] = useState<Line[]>(initialLines && initialLines.length > 0 ? initialLines : [newLine()]);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<unknown>(null);
   const [localError, setLocalError] = useState<Record<string, string>>({});
@@ -216,18 +334,22 @@ function RecipeForm({ householdId, onCancel, onSaved }: { householdId: string; o
       .split("\n")
       .map((x) => x.trim())
       .filter(Boolean);
+    const tagList = [...new Set(tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean))];
+    const body = {
+      name: name.trim(),
+      servings: s,
+      ...(existing ? { tags: tagList, steps: stepList } : { ...(tagList.length > 0 ? { tags: tagList } : {}), ...(stepList.length > 0 ? { steps: stepList } : {}) }),
+      ingredients: filled.map((l) => ({
+        ...(l.extra ?? {}),
+        ingredientId: l.ingredient!.id,
+        quantity: Number(l.quantity),
+        unit: l.unit,
+        ...(existing ? { optional: l.optional } : l.optional ? { optional: true } : {}),
+      })),
+    };
     try {
-      await api.post(`/api/households/${householdId}/recipes`, {
-        name: name.trim(),
-        servings: s,
-        ...(stepList.length > 0 ? { steps: stepList } : {}),
-        ingredients: filled.map((l) => ({
-          ingredientId: l.ingredient!.id,
-          quantity: Number(l.quantity),
-          unit: l.unit,
-          ...(l.optional ? { optional: true } : {}),
-        })),
-      });
+      if (existing) await api.patch(`/api/households/${householdId}/recipes/${existing._id}`, body);
+      else await api.post(`/api/households/${householdId}/recipes`, body);
       onSaved();
     } catch (err) {
       setProblem(err);
@@ -260,7 +382,7 @@ function RecipeForm({ householdId, onCancel, onSaved }: { householdId: string; o
                 householdId={householdId}
                 label="Ingredient"
                 value={l.ingredient}
-                onChange={(ing) => update(l.key, { ingredient: ing })}
+                onChange={(ing) => update(l.key, { ingredient: ing, ...(ing ? { unit: defaultUnitFor(ing.baseUnitType) } : {}) })}
                 error={fe[`line.${i}.ingredient`] ?? fe[`ingredients.${i}.ingredientId`]}
               />
               <Field label="Amount" error={fe[`line.${i}.quantity`] ?? fe[`ingredients.${i}.quantity`]}>
@@ -301,6 +423,15 @@ function RecipeForm({ householdId, onCancel, onSaved }: { householdId: string; o
         </div>
       </fieldset>
 
+      <Field label="Tags" htmlFor="r-tags" hint="Separate with commas: dinner, vegetarian, quick" error={fe.tags}>
+        <input id="r-tags" className={inputCls} value={tags} onChange={(e) => setTags(e.target.value)} list="tag-suggestions" />
+        <datalist id="tag-suggestions">
+          {["breakfast", "lunch", "dinner", "side", "dessert", "snack", "vegetarian", "quick"].map((t) => (
+            <option key={t} value={t} />
+          ))}
+        </datalist>
+      </Field>
+
       <Field label="Steps" htmlFor="r-steps" hint="One step per line. Optional.">
         <textarea id="r-steps" rows={4} className={inputCls} value={steps} onChange={(e) => setSteps(e.target.value)} />
       </Field>
@@ -315,7 +446,7 @@ function RecipeForm({ householdId, onCancel, onSaved }: { householdId: string; o
           Cancel
         </Button>
         <Button type="submit" disabled={busy}>
-          {busy ? "Saving…" : "Save recipe"}
+          {busy ? "Saving…" : existing ? "Save changes" : "Save recipe"}
         </Button>
       </div>
     </form>

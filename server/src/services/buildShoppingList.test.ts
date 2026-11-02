@@ -16,7 +16,7 @@ const info = (
 ): IngredientInfo => ({ name, baseUnitType, ...extra });
 
 const ingredients = new Map<string, IngredientInfo>([
-  ["flour", info("Flour", "mass", { category: "pantry" })],
+  ["flour", info("Flour", "mass", { category: "baking" })],
   ["milk", info("Milk", "volume", { category: "dairy" })],
   ["egg", info("Egg", "count", { category: "dairy" })],
   ["onion", info("Onion", "count", { category: "produce" })],
@@ -441,7 +441,7 @@ describe("ordering and grouping", () => {
     ["a", info("zucchini", "count", { category: "produce" })],
     ["b", info("Apple", "count", { category: "produce" })],
     ["c", info("chicken", "mass", { category: "meat" })],
-    ["d", info("rice", "mass", { category: "pantry" })],
+    ["d", info("rice", "mass", { category: "grains" })],
     ["e", info("mystery", "mass", { category: "zzz-new-aisle" })],
     ["f", info("no category", "mass")],
     ["g", info("butter", "mass", { category: "dairy" })],
@@ -487,7 +487,7 @@ describe("ordering and grouping", () => {
       "produce",
       "meat",
       "dairy",
-      "pantry",
+      "grains",
       "other",
       "zzz-new-aisle",
     ]);
@@ -500,7 +500,7 @@ describe("ordering and grouping", () => {
       "produce",
       "meat",
       "dairy",
-      "pantry",
+      "grains",
       "other",
       "zzz-new-aisle",
     ]);
@@ -535,5 +535,42 @@ describe("purity", () => {
     const pantry = Object.freeze([Object.freeze({ ingredientId: "flour", baseQuantity: 100 })]);
     const run = () => buildShoppingList({ entries, recipes, ingredients, pantry });
     expect(run()).toEqual(run());
+  });
+});
+
+describe("packages on the shopping list", () => {
+  const beans = new Map<string, IngredientInfo>([
+    ["beans", info("Beans", "mass", { category: "canned", package: { label: "can", size: 15, unit: "oz" } })],
+    ["rice", info("Rice", "mass", { category: "grains" })],
+  ]);
+  const recipe = (qty: number, id = "beans") =>
+    new Map<string, RecipeInput>([["r", { servings: 2, ingredients: [{ ingredientId: id, baseQuantity: qty }] }]]);
+  const run = (qty: number, id = "beans", pantry: PantryBatchInput[] = []) =>
+    buildShoppingList({ entries: [{ recipeId: "r", servings: 2 }], recipes: recipe(qty, id), ingredients: beans, pantry });
+
+  it("rounds up to whole packages", () => {
+    const item = run(1000).toBuy[0];
+    expect(item?.package).toMatchObject({ label: "can", size: 15, unit: "oz", count: 3, exact: 2.35 });
+    expect(item?.display.unit).toBe("kg"); // the measure is still there
+  });
+
+  it("counts only what is left after the pantry", () => {
+    const item = run(1000, "beans", [{ ingredientId: "beans", baseQuantity: 600 }]).toBuy[0];
+    expect(item?.package?.count).toBe(1);
+  });
+
+  it("has no package block when the ingredient has no package size", () => {
+    expect(run(500, "rice").toBuy[0]?.package).toBeUndefined();
+  });
+
+  it("ignores a package whose unit does not match the ingredient", () => {
+    const wrong = new Map(beans).set("beans", info("Beans", "mass", { package: { label: "can", size: 1, unit: "cup" } }));
+    const res = buildShoppingList({
+      entries: [{ recipeId: "r", servings: 2 }],
+      recipes: recipe(500),
+      ingredients: wrong,
+      pantry: [],
+    });
+    expect(res.toBuy[0]?.package).toBeUndefined();
   });
 });

@@ -19,11 +19,15 @@ export interface IShoppingItem {
   toBuy: number;
   /** The same amounts in one friendly unit, for display. */
   display: { unit: Unit; needed: number; have: number; toBuy: number };
+  /** Whole packages to buy, when the ingredient has a package size. */
+  package?: { label: string; size: number; unit: Unit; count: number; exact: number };
+  /** Set when the shopper changed the amount by hand. */
   isStaple: boolean;
   sources: IShoppingSource[];
   /** Shopper's check mark. Only meaningful on `items`. */
   checked: boolean;
-  note?: string; adjusted?: boolean;
+  note?: string; 
+  adjusted?: boolean;
 }
 
 export interface IShoppingWarning {
@@ -84,6 +88,19 @@ const itemSchema = new Schema<IShoppingItem>(
       needed: { type: Number, required: true, min: 0 },
       have: { type: Number, required: true, min: 0 },
       toBuy: { type: Number, required: true, min: 0 },
+    },
+    package: {
+      type: new Schema(
+        {
+          label: { type: String, required: true },
+          size: { type: Number, required: true, min: 0 },
+          unit: { type: String, enum: CANONICAL_UNITS, required: true },
+          count: { type: Number, required: true, min: 0 },
+          exact: { type: Number, required: true, min: 0 },
+        },
+        { _id: false }
+      ),
+      default: undefined,
     },
     isStaple: { type: Boolean, default: false },
     sources: { type: [sourceSchema], default: [] },

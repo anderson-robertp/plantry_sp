@@ -63,3 +63,36 @@ describe("date helpers", () => {
     expect(eachDay("2026-10-30", "2026-10-30")).toHaveLength(1);
   });
 });
+
+import { packageCountText, pluralize } from "./format";
+describe("package text", () => {
+  it("pluralizes labels", () => {
+    expect(pluralize("can", 1)).toBe("can");
+    expect(pluralize("can", 3)).toBe("cans");
+    expect(pluralize("box", 2)).toBe("boxes");
+    expect(pluralize("bunch", 2)).toBe("bunches");
+    expect(pluralize("pantry", 2)).toBe("pantries");
+    expect(pluralize("tray", 2)).toBe("trays");
+  });
+  it("says how many to buy", () => {
+    expect(packageCountText("can", 3)).toBe("3 cans");
+    expect(packageCountText("bag", 1)).toBe("1 bag");
+  });
+});
+
+import { pickFocusPlan } from "./format";
+describe("pickFocusPlan", () => {
+  const plan = (id: string, startDate: string, endDate: string) => ({ id, startDate, endDate });
+  it("prefers the plan that covers today", () => {
+    const plans = [plan("past", "2026-10-01", "2026-10-07"), plan("now", "2026-10-26", "2026-11-01"), plan("next", "2026-11-02", "2026-11-08")];
+    expect(pickFocusPlan(plans, "2026-10-28")?.id).toBe("now");
+  });
+  it("then the soonest upcoming, then the latest past", () => {
+    const plans = [plan("past", "2026-10-01", "2026-10-07"), plan("far", "2026-12-01", "2026-12-07"), plan("next", "2026-11-02", "2026-11-08")];
+    expect(pickFocusPlan(plans, "2026-10-20")?.id).toBe("next");
+    expect(pickFocusPlan([plan("a", "2026-10-01", "2026-10-07"), plan("b", "2026-10-08", "2026-10-14")], "2026-11-01")?.id).toBe("b");
+  });
+  it("is null with no plans", () => {
+    expect(pickFocusPlan([], "2026-10-20")).toBeNull();
+  });
+});

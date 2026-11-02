@@ -5,6 +5,7 @@ import { Recipe } from "../models/recipe.js";
 import { AppError, NotFoundError } from "../utils/errors.js";
 import { omitUndefined } from "../utils/object.js";
 import { escapeRegExp, normalizeName } from "../utils/text.js";
+import { packageUnitProblem } from "../validation/ingredient.js";
 import type {
   CreateIngredientInput,
   ListIngredientsQuery,
@@ -116,9 +117,17 @@ export async function updateIngredient(
   input: UpdateIngredientInput
 ) {
   const ingredient = await findOwned(householdId, ingredientId);
-  const { name, aliases, ...rest } = input;
+  const { name, aliases, package: pkg, ...rest } = input;
 
   const patch: Record<string, unknown> = omitUndefined(rest);
+
+  if (pkg === null) {
+    ingredient.set("package", undefined);
+  } else if (pkg !== undefined) {
+    const problem = packageUnitProblem(pkg.unit, ingredient.baseUnitType);
+    if (problem) throw new AppError(problem, 422, "invalid_package");
+    patch.package = pkg;
+  }
 
   // normalizedName and aliases must stay consistent with name, so recompute whenever either moves.
   if (name !== undefined || aliases !== undefined) {

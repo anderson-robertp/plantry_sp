@@ -106,3 +106,35 @@ export const MEAL_SLOTS = [
   { value: "dinner", label: "Dinner" },
   { value: "snack", label: "Snack" },
 ] as const;
+
+/** Units that make sense for each way of measuring an ingredient. */
+export const UNITS_FOR: Record<"mass" | "volume" | "count", Unit[]> = {
+  mass: ["g", "kg", "oz", "lb"],
+  volume: ["ml", "l", "fl_oz", "cup", "tbsp", "tsp"],
+  count: ["piece"],
+};
+
+export function pluralize(word: string, n: number): string {
+  if (n === 1) return word;
+  if (/(s|x|z|ch|sh)$/.test(word)) return `${word}es`;
+  if (/[^aeiou]y$/.test(word)) return `${word.slice(0, -1)}ies`;
+  return `${word}s`;
+}
+
+/** "3 cans", "1 box", "2 bunches" */
+export function packageCountText(label: string, count: number): string {
+  return `${formatQty(count)} ${pluralize(label, count)}`;
+}
+
+/**
+ * The plan to show by default: one that covers today, else the soonest one still to come, else the
+ * most recent past one. Mirrors what the dashboard does on the server.
+ */
+export function pickFocusPlan<T extends { startDate: string; endDate: string }>(plans: readonly T[], today: string = localToday()): T | null {
+  const byStart = [...plans].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const current = byStart.filter((p) => p.startDate <= today && today <= p.endDate).pop();
+  if (current) return current;
+  const upcoming = byStart.find((p) => p.startDate > today);
+  if (upcoming) return upcoming;
+  return byStart[byStart.length - 1] ?? null;
+}

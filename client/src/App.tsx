@@ -11,6 +11,7 @@ import { MatchPage } from "./pages/MatchPage";
 import { PantryPage } from "./pages/PantryPage";
 import { PlanPage } from "./pages/PlanPage";
 import { PlansPage } from "./pages/PlansPage";
+import { ShoppingHomePage } from "./pages/ShoppingHomePage";
 import { RecipesPage } from "./pages/RecipesPage";
 import { ShoppingPage } from "./pages/ShoppingPage";
 
@@ -52,6 +53,7 @@ export function App() {
                 <Route path="pantry" element={<PantryPage />} />
                 <Route path="recipes" element={<RecipesPage />} />
                 <Route path="match" element={<MatchPage />} />
+                <Route path="shopping" element={<ShoppingHomePage />} />
                 <Route path="plans" element={<PlansPage />} />
                 <Route path="plans/:planId" element={<PlanPage />} />
                 <Route path="plans/:planId/shopping" element={<ShoppingPage />} />

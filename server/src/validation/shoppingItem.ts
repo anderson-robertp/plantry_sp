@@ -43,6 +43,8 @@ export const updateGeneratedItemInput = z
     checked: z.boolean().optional(),
     quantity: quantity.optional(),
     unit: unitSchema.optional(),
+    /** Whole packages to buy, for items that have a package size. */
+    packageCount: z.number().int().min(0).max(100_000).optional(),
     note: note.nullable().optional(),
   })
   .refine(atLeastOne, { message: "Send at least one field to change" })

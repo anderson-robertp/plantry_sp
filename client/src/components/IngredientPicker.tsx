@@ -2,8 +2,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { rememberIngredient } from "../hooks/useIngredientNames";
 import { fieldErrors, messageOf } from "../lib/api";
 import { api } from "../lib/client";
-import { asList } from "../lib/format";
-import type { BaseUnitType, Ingredient, Listed } from "../lib/types";
+import { asList, unitLabel, UNITS_FOR } from "../lib/format";
+import type { BaseUnitType, Ingredient, Listed, Unit } from "../lib/types";
 import { Button, Field, inputCls } from "./ui";
 
 export interface PickedIngredient {
@@ -15,9 +15,9 @@ export interface PickedIngredient {
 const CATEGORIES = ["produce", "meat", "dairy", "frozen", "canned", "grains", "baking", "condiments", "spices", "beverages", "snacks", "other"];
 
 const MEASURED_BY: { value: BaseUnitType; label: string }[] = [
-  { value: "mass", label: "Weight (flour, rice, cheese)" },
-  { value: "volume", label: "Volume (milk, oil, broth)" },
-  { value: "count", label: "Count (eggs, onions, cans)" },
+  { value: "mass", label: "Weight: g, oz, lb (flour, cheese, beans)" },
+  { value: "volume", label: "Volume: cups, ml (milk, oil, broth)" },
+  { value: "count", label: "Count: pieces (eggs, onions)" },
 ];
 
 /**
@@ -156,14 +156,42 @@ function NewIngredientForm({
   const [name, setName] = useState(initialName);
   const [baseUnitType, setBaseUnitType] = useState<BaseUnitType>("mass");
   const [category, setCategory] = useState("other");
+  const [pkgLabel, setPkgLabel] = useState("");
+  const [pkgSize, setPkgSize] = useState("");
+  const [pkgUnit, setPkgUnit] = useState<Unit>("oz");
+  const [pieceG, setPieceG] = useState("");
+  const [densityG, setDensityG] = useState("");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<unknown>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  // the package unit has to be the same kind of unit as the way recipes measure it
+  const unitChoices = UNITS_FOR[baseUnitType];
+  const unit: Unit = unitChoices.includes(pkgUnit) ? pkgUnit : (unitChoices[0] ?? "g");
 
   const save = async () => {
+    const piece = Number(pieceG);
+    const density = Number(densityG);
+    const size = Number(pkgSize);
+    const hasPackage = pkgLabel.trim() !== "";
+    if ((pieceG.trim() !== "" && !(piece > 0)) || (densityG.trim() !== "" && !(density > 0))) {
+      return setLocalError("Weights must be numbers above zero, or left blank.");
+    }
+    if (hasPackage && !(size > 0)) return setLocalError("Say how big one package is, or clear the package name.");
+    setLocalError(null);
     setBusy(true);
     setProblem(null);
     try {
-      onCreated(await api.post<Ingredient>(`/api/households/${householdId}/ingredients`, { name: name.trim(), baseUnitType, category }));
+      onCreated(
+        await api.post<Ingredient>(`/api/households/${householdId}/ingredients`, {
+          name: name.trim(),
+          baseUnitType,
+          category,
+          ...(hasPackage ? { package: { label: pkgLabel.trim(), size, unit } } : {}),
+          ...(pieceG.trim() !== "" ? { gramsPerPiece: piece } : {}),
+          ...(densityG.trim() !== "" ? { gramsPerMl: density } : {}),
+        })
+      );
     } catch (e) {
       setProblem(e);
       setBusy(false);
@@ -171,12 +199,13 @@ function NewIngredientForm({
   };
 
   const fe = fieldErrors(problem);
+  const general = localError ?? (problem && Object.keys(fe).length === 0 ? messageOf(problem) : null);
   return (
     <div className="grid gap-3 p-3">
       <Field label="Name" error={fe.name}>
         <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
-      <Field label="Measured by" hint="You can't change this later, because amounts are stored this way." error={fe.baseUnitType}>
+      <Field label="In recipes, you measure it by" hint="Fixed once saved, because amounts are stored this way." error={fe.baseUnitType}>
         <select className={inputCls} value={baseUnitType} onChange={(e) => setBaseUnitType(e.target.value as BaseUnitType)}>
           {MEASURED_BY.map((m) => (
             <option key={m.value} value={m.value}>
@@ -185,6 +214,50 @@ function NewIngredientForm({
           ))}
         </select>
       </Field>
+
+      <fieldset className="grid gap-2 rounded-lg border border-line p-3">
+        <legend className="px-1 text-xs font-medium text-muted">At the store it comes as (optional)</legend>
+        <div className="grid grid-cols-[1fr_5rem_6rem] gap-2">
+          <Field label="Package" hint="can, bag, box…" error={fe["package.label"]}>
+            <input className={inputCls} value={pkgLabel} onChange={(e) => setPkgLabel(e.target.value)} list="package-labels" />
+            <datalist id="package-labels">
+              {["can", "bag", "bottle", "box", "jar", "carton", "pack", "bunch", "loaf"].map((l) => (
+                <option key={l} value={l} />
+              ))}
+            </datalist>
+          </Field>
+          <Field label="Size" error={fe["package.size"]}>
+            <input className={inputCls} inputMode="decimal" value={pkgSize} onChange={(e) => setPkgSize(e.target.value)} />
+          </Field>
+          <Field label="Unit" error={fe["package.unit"]}>
+            <select className={inputCls} value={unit} onChange={(e) => setPkgUnit(e.target.value as Unit)}>
+              {unitChoices.map((u) => (
+                <option key={u} value={u}>
+                  {unitLabel(u)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <p className="text-xs text-muted">With this, shopping lists say &ldquo;3 cans&rdquo; instead of a weight.</p>
+      </fieldset>
+
+      <details className="rounded-lg border border-line p-3">
+        <summary className="cursor-pointer text-sm">Recipes use another kind of unit? (optional)</summary>
+        <p className="mt-2 text-xs text-muted">
+          Only needed if a recipe measures this differently from the choice above, such as &ldquo;1 can&rdquo; of something you weigh, or &ldquo;1 cup&rdquo; of
+          something you weigh.
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-3">
+          <Field label="One piece or can weighs (g)" hint="Can of pork and beans: about 430" error={fe.gramsPerPiece}>
+            <input className={inputCls} inputMode="decimal" value={pieceG} onChange={(e) => setPieceG(e.target.value)} />
+          </Field>
+          <Field label="1 ml weighs (g)" hint="Water, milk, broth: about 1" error={fe.gramsPerMl}>
+            <input className={inputCls} inputMode="decimal" value={densityG} onChange={(e) => setDensityG(e.target.value)} />
+          </Field>
+        </div>
+      </details>
+
       <Field label="Aisle" error={fe.category}>
         <select className={inputCls} value={category} onChange={(e) => setCategory(e.target.value)}>
           {CATEGORIES.map((c) => (
@@ -194,7 +267,7 @@ function NewIngredientForm({
           ))}
         </select>
       </Field>
-      {problem && Object.keys(fe).length === 0 ? <p className="text-xs text-bad">{messageOf(problem)}</p> : null}
+      {general ? <p role="alert" className="text-xs text-bad">{general}</p> : null}
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={onCancel}>
           Back

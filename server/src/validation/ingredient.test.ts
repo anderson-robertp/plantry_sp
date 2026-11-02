@@ -24,7 +24,7 @@ describe("createIngredientInput", () => {
 
   it("rejects bad category, base unit type, zero/negative density, and blank names", () => {
     for (const bad of [
-      { category: "not_a_catagory" },
+      { category: "bakery" },
       { baseUnitType: "weight" },
       { gramsPerMl: 0 },
       { gramsPerPiece: -1 },
@@ -90,5 +90,30 @@ describe("params and list query", () => {
     for (const q of [{ scope: "mine" }, { category: "x" }, { page: "0" }, { limit: "101" }]) {
       expect(listIngredientsQuery.safeParse(q).success).toBe(false);
     }
+  });
+});
+
+describe("package on an ingredient", () => {
+  const beans = { name: "Pork and beans", baseUnitType: "mass" };
+
+  it("accepts a package in the same kind of unit, with a normalized label", () => {
+    const out = createIngredientInput.parse({ ...beans, package: { label: " Can ", size: 15, unit: "ounces" } });
+    expect(out.package).toEqual({ label: "can", size: 15, unit: "oz" });
+  });
+
+  it("rejects a package in the wrong kind of unit", () => {
+    const res = createIngredientInput.safeParse({ ...beans, package: { label: "can", size: 1, unit: "cup" } });
+    expect(res.success).toBe(false);
+  });
+
+  it("rejects a zero or negative size", () => {
+    for (const size of [0, -1]) {
+      expect(createIngredientInput.safeParse({ ...beans, package: { label: "can", size, unit: "oz" } }).success).toBe(false);
+    }
+  });
+
+  it("can be set, changed or removed on update", () => {
+    expect(updateIngredientInput.safeParse({ package: { label: "bag", size: 2, unit: "lb" } }).success).toBe(true);
+    expect(updateIngredientInput.safeParse({ package: null }).success).toBe(true);
   });
 });

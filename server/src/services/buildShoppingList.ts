@@ -1,6 +1,7 @@
+import { INGREDIENT_CATEGORIES } from "../utils/constants.js";
 import type { UnitSystem } from "../utils/mealPlanConstants.js";
+import { packageFitsType, packagesFor, type PackageDef } from "../utils/packages.js";
 import { UNITS, type Unit, type UnitType } from "../utils/units.js";
-import mongoose from "mongoose";
 
 /**
  * The heart of the app. Pure: no Mongoose, no Express, no clock. Give it a plan,
@@ -41,6 +42,8 @@ export interface IngredientInfo {
   category?: string | undefined;
   isStaple?: boolean | undefined;
   baseUnitType: UnitType;
+  /** How it's sold, if known. Lets the list say "3 cans". */
+  package?: PackageDef | null | undefined;
 }
 
 export interface PantryBatchInput {
@@ -83,6 +86,8 @@ export interface ShoppingItem {
   toBuy: number;
   /** The same three amounts in one friendly unit (needed/toBuy round up, have rounds down). */
   display: { unit: Unit; needed: number; have: number; toBuy: number };
+  /** Present when the ingredient has a package size: whole packages to buy, rounded up. */
+  package?: { label: string; size: number; unit: Unit; count: number; exact: number };
   isStaple: boolean;
   /** Which recipes need it, biggest first. */
   sources: { recipeId: string; baseQuantity: number }[];
@@ -109,17 +114,8 @@ export interface ShoppingListResult {
 
 // ---- helpers ---------------------------------------------------------------------------------
 
-/** Walk the store aisles in this order. Unknown categories go after these, A-Z. */
-export const AISLE_ORDER = [
-  "produce",
-  "meat",
-  "dairy",
-  "bakery",
-  "frozen",
-  "pantry",
-  "spices",
-  "other",
-] as const;
+/** Walk the store aisles in this order (see INGREDIENT_CATEGORIES). Unknown categories go after these, A-Z. */
+export const AISLE_ORDER = INGREDIENT_CATEGORIES;
 
 /** Per base type: [display unit, exclusive upper bound in base units]. First match wins. */
 const LADDERS: Record<UnitSystem, Record<UnitType, ReadonlyArray<readonly [Unit, number]>>> = {
@@ -180,6 +176,13 @@ function toDisplay(
     have: floorTo(have / factor, decimals),
     toBuy: ceilTo(toBuy / factor, decimals),
   };
+}
+
+/** `{ package }` for items whose ingredient has a usable package size, else nothing. */
+function packageFields(info: IngredientInfo, toBuy: number): { package?: NonNullable<ShoppingItem["package"]> } {
+  const pkg = info.package;
+  if (!pkg || !packageFitsType(pkg, info.baseUnitType)) return {};
+  return { package: { label: pkg.label, size: pkg.size, unit: pkg.unit, ...packagesFor(toBuy, pkg) } };
 }
 
 function aisleRank(category: string): number {
@@ -303,6 +306,7 @@ export function buildShoppingList(input: BuildShoppingListInput): ShoppingListRe
       have: haveQty,
       toBuy: buy,
       display: toDisplay(needed, haveQty, buy, need.info.baseUnitType, unitSystem),
+      ...packageFields(need.info, buy),
       isStaple: need.info.isStaple === true,
       sources: [...need.sources]
         .map(([recipeId, quantity]) => ({ recipeId, baseQuantity: round4(quantity) }))

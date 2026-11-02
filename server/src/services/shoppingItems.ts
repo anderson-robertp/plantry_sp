@@ -55,8 +55,13 @@ export async function updateGeneratedItem(
   ingredientId: string,
   patch: UpdateGeneratedItemInput
 ) {
+  // a package count only makes sense on an item that has a package size
+  const target =
+    patch.packageCount !== undefined
+      ? { items: { $elemMatch: { ingredientId, package: { $exists: true } } } }
+      : { "items.ingredientId": ingredientId };
   const list = await ShoppingList.findOneAndUpdate(
-    { householdId, planId, "items.ingredientId": ingredientId },
+    { householdId, planId, ...target },
     generatedPatchOps(patch),
     { new: true, runValidators: true }
   );

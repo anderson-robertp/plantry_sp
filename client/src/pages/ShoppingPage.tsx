@@ -3,10 +3,10 @@ import { Link, useParams } from "react-router-dom";
 import { useHousehold } from "../auth/HouseholdContext";
 import { Badge, Button, Card, ErrorBanner, Field, inputCls, Loading, PageHeader } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
-import { ApiError } from "../lib/api";
+import { ApiError, messageOf } from "../lib/api";
 import { api } from "../lib/client";
-import { amount, localToday, UNITS } from "../lib/format";
-import type { ShoppingItem, ShoppingList, Unit } from "../lib/types";
+import { amount, localToday, LOCATIONS, packageCountText, UNITS } from "../lib/format";
+import type { Location, ShoppingItem, ShoppingList, Unit } from "../lib/types";
 
 export function ShoppingPage() {
   const { planId = "" } = useParams();
@@ -17,6 +17,7 @@ export function ShoppingPage() {
   const [problem, setProblem] = useState<unknown>(null);
   const [includeStaples, setIncludeStaples] = useState(false);
   const [unitSystem, setUnitSystem] = useState<"metric" | "us">("metric");
+  const [stocking, setStocking] = useState(false);
 
   const list = latest ?? data;
   const noList = error instanceof ApiError && error.status === 404 && !latest;
@@ -87,6 +88,7 @@ export function ShoppingPage() {
   const total = items.length + extras.length;
   const done = items.filter((i) => i.checked).length + extras.filter((i) => i.checked).length;
   const categories = [...new Set(items.map((i) => i.category))].sort();
+  const checkedItems = items.filter((i) => i.checked);
 
   return (
     <>
@@ -95,9 +97,14 @@ export function ShoppingPage() {
         title="Shopping list"
         subtitle={total === 0 ? "You have everything this plan needs." : `${done} of ${total} checked off`}
         action={
-          <Button variant="secondary" onClick={generate}>
-            Regenerate
-          </Button>
+          <div className="flex gap-2">
+            <Button disabled={checkedItems.length === 0} onClick={() => setStocking(true)}>
+              Add {checkedItems.length > 0 ? `${checkedItems.length} ` : ""}checked to pantry
+            </Button>
+            <Button variant="secondary" onClick={generate}>
+              Regenerate
+            </Button>
+          </div>
         }
       />
       <div className="mb-4">{options}</div>
@@ -112,6 +119,18 @@ export function ShoppingPage() {
             <li key={i}>{w.message}</li>
           ))}
         </ul>
+      ) : null}
+
+      {stocking ? (
+        <StockPanel
+          items={checkedItems}
+          householdId={household._id}
+          listBase={base}
+          onDone={(l) => {
+            if (l) setLatest(l);
+            setStocking(false);
+          }}
+        />
       ) : null}
 
       <div className="grid gap-6">
@@ -173,20 +192,210 @@ export function ShoppingPage() {
 
 function GeneratedRow({ item, base, run }: { item: ShoppingItem; base: string; run: (fn: () => Promise<ShoppingList>) => Promise<void> }) {
   const url = `${base}/items/${item.ingredientId}`;
+  const pkg = item.package;
+  const [editing, setEditing] = useState(false);
+  const [qty, setQty] = useState(String(pkg ? pkg.count : item.display.toBuy));
+  const [unit, setUnit] = useState<Unit>(item.display.unit);
+  const [bad, setBad] = useState<string | undefined>();
+
+  const save = async () => {
+    const q = Number(qty);
+    if (pkg) {
+      if (!Number.isInteger(q) || q < 0) return setBad("Enter a whole number of packages.");
+      setBad(undefined);
+      await run(() => api.patch<ShoppingList>(url, { packageCount: q }));
+    } else {
+      if (!Number.isFinite(q) || q <= 0) return setBad("Enter an amount above zero.");
+      setBad(undefined);
+      await run(() => api.patch<ShoppingList>(url, { quantity: q, unit }));
+    }
+    setEditing(false);
+  };
+
   return (
-    <li className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface p-3">
-      <label className="flex min-w-0 items-center gap-3">
-        <input type="checkbox" checked={item.checked} onChange={(e) => run(() => api.patch<ShoppingList>(url, { checked: e.target.checked }))} />
-        <span className={`truncate ${item.checked ? "text-muted line-through" : ""}`}>{item.name}</span>
-      </label>
-      <div className="flex shrink-0 items-center gap-2">
-        {item.have > 0 ? <Badge>have some</Badge> : null}
-        <span className="text-sm text-muted">{amount(item.display.toBuy, item.display.unit)}</span>
-        <Button variant="ghost" aria-label={`Remove ${item.name}`} onClick={() => run(() => api.del<ShoppingList>(url))}>
-          Remove
-        </Button>
+    <li className="rounded-xl border border-line bg-surface p-3">
+      <div className="flex items-center justify-between gap-3">
+        <label className="flex min-w-0 items-center gap-3">
+          <input type="checkbox" checked={item.checked} onChange={(e) => run(() => api.patch<ShoppingList>(url, { checked: e.target.checked }))} />
+          <span className={`truncate ${item.checked ? "text-muted line-through" : ""}`}>{item.name}</span>
+        </label>
+        <div className="flex shrink-0 items-center gap-2">
+          {item.have > 0 ? <Badge>have some</Badge> : null}
+          <span className="text-right text-sm">
+            {pkg ? <span className="font-medium">{packageCountText(pkg.label, pkg.count)}</span> : <span className="text-muted">{amount(item.display.toBuy, item.display.unit)}</span>}
+            {pkg ? (
+              <span className="block text-xs text-muted">
+                {amount(pkg.size, pkg.unit)} each &middot; needs about {pkg.exact}
+              </span>
+            ) : null}
+          </span>
+          <Button variant="ghost" onClick={() => setEditing((v) => !v)} aria-expanded={editing}>
+            Edit
+          </Button>
+          <Button variant="ghost" aria-label={`Remove ${item.name}`} onClick={() => run(() => api.del<ShoppingList>(url))}>
+            Remove
+          </Button>
+        </div>
       </div>
+      {editing ? (
+        <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-line pt-3">
+          <Field label={pkg ? `How many ${pkg.label}s` : "Amount"} error={bad} className="w-28">
+            <input className={inputCls} inputMode={pkg ? "numeric" : "decimal"} value={qty} onChange={(e) => setQty(e.target.value)} />
+          </Field>
+          {pkg ? null : (
+            <Field label="Unit" className="w-32">
+              <select className={inputCls} value={unit} onChange={(e) => setUnit(e.target.value as Unit)}>
+                {UNITS.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+          <Button onClick={save}>Save</Button>
+          <Button variant="ghost" onClick={() => setEditing(false)}>
+            Cancel
+          </Button>
+        </div>
+      ) : null}
     </li>
+  );
+}
+
+interface StockRow {
+  item: ShoppingItem;
+  qty: string;
+  unit: Unit;
+  expires: string;
+  location: Location;
+  status: "idle" | "done" | "error";
+  message?: string;
+}
+
+/** Review what you bought, then add each checked item to the pantry and take it off the list. */
+function StockPanel({
+  items,
+  householdId,
+  listBase,
+  onDone,
+}: {
+  items: ShoppingItem[];
+  householdId: string;
+  listBase: string;
+  onDone: (list: ShoppingList | null) => void;
+}) {
+  const [rows, setRows] = useState<StockRow[]>(() =>
+    items.map((item) => ({
+      item,
+      // bought 3 cans of 15 oz: 45 oz goes into the pantry
+      qty: String(item.package ? Math.round(item.package.count * item.package.size * 100) / 100 : item.display.toBuy),
+      unit: item.package ? item.package.unit : item.display.unit,
+      expires: "", location: "pantry", status: "idle" as const,
+    }))
+  );
+  const [busy, setBusy] = useState(false);
+  const [latest, setLatest] = useState<ShoppingList | null>(null);
+
+  const patch = (id: string, p: Partial<StockRow>) => setRows((rs) => rs.map((r) => (r.item.ingredientId === id ? { ...r, ...p } : r)));
+
+  const submit = async () => {
+    setBusy(true);
+    let last: ShoppingList | null = latest;
+    for (const r of rows) {
+      if (r.status === "done") continue;
+      const q = Number(r.qty);
+      if (!Number.isFinite(q) || q <= 0) {
+        patch(r.item.ingredientId, { status: "error", message: "Enter an amount above zero." });
+        continue;
+      }
+      try {
+        await api.post(`/api/households/${householdId}/pantry`, {
+          ingredientId: r.item.ingredientId,
+          quantity: q,
+          unit: r.unit,
+          location: r.location,
+          ...(r.expires ? { expirationDate: r.expires } : {}),
+        });
+      } catch (e) {
+        patch(r.item.ingredientId, { status: "error", message: messageOf(e) });
+        continue;
+      }
+      patch(r.item.ingredientId, { status: "done", message: undefined });
+      try {
+        last = await api.del<ShoppingList>(`${listBase}/items/${r.item.ingredientId}`);
+      } catch {
+        // it is in the pantry; the list row just stays until the next regenerate
+      }
+    }
+    setLatest(last);
+    setBusy(false);
+  };
+
+  const allDone = rows.every((r) => r.status === "done");
+  const anyError = rows.some((r) => r.status === "error");
+
+  return (
+    <Card className="mb-6">
+      <h2 className="mb-1 font-medium">Add to pantry</h2>
+      <p className="mb-3 text-sm text-muted">Check the amounts you actually bought. Expiry is optional. Added items come off this list.</p>
+      <ul className="grid gap-3">
+        {rows.map((r) => (
+          <li key={r.item.ingredientId} className={`rounded-lg border border-line p-3 ${r.status === "done" ? "opacity-60" : ""}`}>
+            <p className="mb-2 flex items-center gap-2 font-medium">
+              {r.item.name} {r.status === "done" ? <Badge tone="good">added</Badge> : null}
+            </p>
+            {r.status !== "done" ? (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <Field label="Amount">
+                  <input className={inputCls} inputMode="decimal" value={r.qty} onChange={(e) => patch(r.item.ingredientId, { qty: e.target.value })} />
+                </Field>
+                <Field label="Unit">
+                  <select className={inputCls} value={r.unit} onChange={(e) => patch(r.item.ingredientId, { unit: e.target.value as Unit })}>
+                    {UNITS.map((u) => (
+                      <option key={u.value} value={u.value}>
+                        {u.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Expires">
+                  <input type="date" className={inputCls} value={r.expires} onChange={(e) => patch(r.item.ingredientId, { expires: e.target.value })} />
+                </Field>
+                <Field label="Kept in">
+                  <select className={inputCls} value={r.location} onChange={(e) => patch(r.item.ingredientId, { location: e.target.value as Location })}>
+                    {LOCATIONS.map((l) => (
+                      <option key={l.value} value={l.value}>
+                        {l.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+            ) : null}
+            {r.message ? (
+              <p role="alert" className="mt-2 text-xs text-bad">
+                {r.message}
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 flex justify-end gap-2">
+        {allDone ? (
+          <Button onClick={() => onDone(latest)}>Done</Button>
+        ) : (
+          <>
+            <Button variant="ghost" onClick={() => onDone(latest)} disabled={busy}>
+              {rows.some((r) => r.status === "done") ? "Close" : "Cancel"}
+            </Button>
+            <Button onClick={submit} disabled={busy}>
+              {busy ? "Adding…" : anyError ? "Retry the rest" : `Add ${rows.length} to pantry`}
+            </Button>
+          </>
+        )}
+      </div>
+    </Card>
   );
 }
 
