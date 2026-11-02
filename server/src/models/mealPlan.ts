@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
-import { MEAL_SLOTS, type MealSlot } from "../utils/mealPlanConstants.js";
+import { COURSES, MEAL_SLOTS, type Course, type MealSlot } from "../utils/mealPlanConstants.js";
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -9,6 +9,7 @@ export interface IMealPlanEntry {
   /** A calendar day as "YYYY-MM-DD", not an instant, so it can't shift with time zones. */
   date: string;
   slot: MealSlot;
+  course?: Course | undefined;
   recipeId: Types.ObjectId;
   /** How many servings to cook; scales the recipe's quantities. */
   servings: number;
@@ -29,6 +30,7 @@ export interface IMealPlan extends Document {
 const mealPlanEntrySchema = new Schema<IMealPlanEntry>({
   date: { type: String, required: true, match: DATE_ONLY },
   slot: { type: String, enum: MEAL_SLOTS, required: true },
+  course: { type: String, enum: COURSES, default: "main" },
   recipeId: { type: Schema.Types.ObjectId, ref: "Recipe", required: true },
   servings: { type: Number, required: true, min: 0.01, max: 100 },
   cookedAt: { type: Date },

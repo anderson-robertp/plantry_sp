@@ -155,3 +155,13 @@ describe("params, query and small bodies", () => {
     expect(checkShoppingItemInput.safeParse({}).success).toBe(false);
   });
 });
+
+describe("course on a plan entry", () => {
+  it("is optional, and limited to the known courses", () => {
+    expect(createMealPlanInput.safeParse(plan).success).toBe(true);
+    for (const course of ["main", "side", "appetizer", "dessert", "drink"]) {
+      expect(createMealPlanInput.safeParse({ ...plan, entries: [{ ...entry, course }] }).success).toBe(true);
+    }
+    expect(createMealPlanInput.safeParse({ ...plan, entries: [{ ...entry, course: "entree" }] }).success).toBe(false);
+  });
+});

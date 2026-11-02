@@ -102,11 +102,14 @@ export interface MatchResponse {
 export type Listed<T> = T[] | { items: T[] };
 
 export type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+export type Course = "main" | "side" | "appetizer" | "dessert" | "drink";
 
 export interface MealPlanEntry {
   _id: string;
   date: string;
   slot: MealSlot;
+  /** Missing on older entries; those count as "main". */
+  course?: Course;
   recipeId: Ref;
   servings: number;
   cookedAt?: string;

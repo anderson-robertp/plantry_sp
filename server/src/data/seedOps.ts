@@ -1,5 +1,9 @@
 import { normalizeName } from "../utils/text.js";
+import type { PackageDef } from "../utils/packages.js";
 import type { SeedIngredient } from "./globalIngredients.js";
+
+/** A catalog entry, optionally with how it is sold. */
+export type SeedItem = SeedIngredient & { package?: PackageDef | undefined };
 
 export interface SeedOp {
   updateOne: {
@@ -10,7 +14,7 @@ export interface SeedOp {
 }
 
 /** The Ingredient document for one catalog entry, in the shape the model stores. */
-export function toDocument(item: SeedIngredient) {
+export function toDocument(item: SeedItem) {
   const normalizedName = normalizeName(item.name);
   return {
     name: item.name,
@@ -23,6 +27,7 @@ export function toDocument(item: SeedIngredient) {
     // Optional numbers are left out entirely rather than written as undefined.
     ...(item.gramsPerMl !== undefined ? { gramsPerMl: item.gramsPerMl } : {}),
     ...(item.gramsPerPiece !== undefined ? { gramsPerPiece: item.gramsPerPiece } : {}),
+    ...(item.package ? { package: { label: item.package.label, size: item.package.size, unit: item.package.unit } } : {}),
   };
 }
 
@@ -33,7 +38,7 @@ export function toDocument(item: SeedIngredient) {
  * Default: insert only. Existing entries are left alone, so densities someone corrected by hand
  * survive. With `update: true` the catalog values overwrite what is stored.
  */
-export function buildSeedOps(items: readonly SeedIngredient[], opts: { update?: boolean } = {}): SeedOp[] {
+export function buildSeedOps(items: readonly SeedItem[], opts: { update?: boolean } = {}): SeedOp[] {
   return items.map((item) => {
     const doc = toDocument(item);
     return {
@@ -44,4 +49,31 @@ export function buildSeedOps(items: readonly SeedIngredient[], opts: { update?: 
       },
     };
   });
+}
+
+export interface PackageOp {
+  updateOne: {
+    filter: Record<string, unknown>;
+    update: { $set: { package: { label: string; size: number; unit: string } } };
+  };
+}
+
+/**
+ * Fills in package sizes on catalog entries that already exist, without touching anything else.
+ * Entries that already have a package are skipped, so a size someone set by hand is never
+ * overwritten. Nothing is created: an entry that isn't in the database is left to the main seed.
+ */
+export function buildPackageOps(items: readonly SeedItem[]): PackageOp[] {
+  return items.flatMap((item) =>
+    item.package
+      ? [
+          {
+            updateOne: {
+              filter: { normalizedName: normalizeName(item.name), householdId: { $exists: false }, package: { $exists: false } },
+              update: { $set: { package: { label: item.package.label, size: item.package.size, unit: item.package.unit } } },
+            },
+          },
+        ]
+      : []
+  );
 }

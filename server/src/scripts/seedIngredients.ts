@@ -5,16 +5,18 @@
  *   npx tsx src/scripts/seedIngredients.ts --dry-run    show what would happen, change nothing
  *   npx tsx src/scripts/seedIngredients.ts --update     overwrite existing catalog entries
  *
+ * Package sizes ("can", 15 oz) are always filled in on catalog entries that have none yet,
+ * even in insert-only mode. A package that is already set is never overwritten.
+ *
  * Safe to re-run. NOTE on --update: recipes and pantry rows keep the baseQuantity they were saved
  * with, so changing a density here does not fix quantities that are already stored.
  */
 import mongoose from "mongoose";
 import { GLOBAL_INGREDIENTS } from "../data/globalIngredients.js";
-import { buildSeedOps } from "../data/seedOps.js";
+import { withPackages } from "../data/catalogPackages.js";
+import { buildPackageOps, buildSeedOps } from "../data/seedOps.js";
 import { Ingredient } from "../models/ingredient.js";
 import dotenv from "dotenv";
-
-dotenv.config()
 
 async function main() {
   const args = new Set(process.argv.slice(2));
@@ -22,15 +24,20 @@ async function main() {
   const dryRun = args.has("--dry-run");
 
   // Load .env if dotenv is installed; otherwise rely on the environment already being set.
-  //await import("dotenv").catch(() => undefined);
+  // await import("dotenv").catch(() => undefined);
+  // await import("config").catch(() => undefined);
+
+  dotenv.config();
 
   const uri = process.env.MONGODB_URI ?? process.env.MONGO_URI ?? process.env.DATABASE_URL;
   if (!uri) {
     throw new Error("Set MONGODB_URI (or MONGO_URI / DATABASE_URL) to your connection string.");
   }
 
-  const ops = buildSeedOps(GLOBAL_INGREDIENTS, { update });
-  console.log(`${ops.length} catalog ingredients, mode: ${update ? "update" : "insert-only"}${dryRun ? " (dry run)" : ""}`);
+  const items = withPackages(GLOBAL_INGREDIENTS);
+  const ops = buildSeedOps(items, { update });
+  const packageOps = buildPackageOps(items);
+  console.log(`${ops.length} catalog ingredients (${packageOps.length} with package sizes), mode: ${update ? "update" : "insert-only"}${dryRun ? " (dry run)" : ""}`);
   if (dryRun) return;
 
   await mongoose.connect(uri);
@@ -40,6 +47,8 @@ async function main() {
       ordered: false,
     });
     console.log(`added ${result.upsertedCount}, updated ${result.modifiedCount}, already present ${result.matchedCount - result.modifiedCount}`);
+    const pk = await Ingredient.bulkWrite(packageOps as unknown as Parameters<typeof Ingredient.bulkWrite>[0], { ordered: false });
+    console.log(`package sizes filled in on ${pk.modifiedCount} entries`);
   } catch (error) {
     const e = error as { writeErrors?: { errmsg?: string; err?: { errmsg?: string } }[]; result?: { upsertedCount?: number } };
     if (!e.writeErrors) throw error;

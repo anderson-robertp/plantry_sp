@@ -4,8 +4,8 @@ import { useHousehold } from "../auth/HouseholdContext";
 import { Badge, Button, Card, ErrorBanner, Field, inputCls, Loading, PageHeader } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../lib/client";
-import { asList, dayLabel, eachDay, localToday, MEAL_SLOTS, refId } from "../lib/format";
-import type { CookLog, CookResult, Listed, MealPlan, MealPlanEntry, MealSlot, Recipe } from "../lib/types";
+import { asList, courseFromTags, courseLabel, courseOf, courseRank, COURSES, dayLabel, eachDay, localToday, MEAL_SLOTS, refId } from "../lib/format";
+import type { CookLog, CookResult, Course, Listed, MealPlan, MealPlanEntry, MealSlot, Recipe } from "../lib/types";
 
 const slotOrder = (s: MealSlot) => MEAL_SLOTS.findIndex((x) => x.value === s);
 const slotLabel = (s: MealSlot) => MEAL_SLOTS.find((x) => x.value === s)?.label ?? s;
@@ -54,22 +54,53 @@ export function PlanPage() {
 
   const days = eachDay(p.startDate, p.endDate);
   const byDay = (d: string) =>
-    p.entries.filter((e) => e.date === d).sort((a, b) => slotOrder(a.slot) - slotOrder(b.slot));
+    p.entries
+      .filter((e) => e.date === d)
+      .sort((a, b) => slotOrder(a.slot) - slotOrder(b.slot) || courseRank(courseOf(a)) - courseRank(courseOf(b)));
+  /** One day's dishes grouped by meal (all the dinner dishes together, in serving order). */
+  const bySlot = (d: string) => {
+    const groups: { slot: MealSlot; entries: MealPlanEntry[] }[] = [];
+    for (const e of byDay(d)) {
+      const last = groups[groups.length - 1];
+      if (last && last.slot === e.slot) last.entries.push(e);
+      else groups.push({ slot: e.slot, entries: [e] });
+    }
+    return groups;
+  };
+
+  const cookRequest = (e: MealPlanEntry) =>
+    api.post<CookResult>(`${hh}/recipes/${refId(e.recipeId)}/cook`, {
+      planId: p._id,
+      entryId: e._id,
+      servings: e.servings,
+      today: localToday(),
+    });
+
+  const shortText = (names: string[]) =>
+    names.length > 0
+      ? `Cooked. You were short on ${[...new Set(names)].join(", ")}; the pantry was used up as far as it went.`
+      : "Cooked. The pantry has been updated.";
 
   const cook = (e: MealPlanEntry) =>
     act(async () => {
-      const res = await api.post<CookResult>(`${hh}/recipes/${refId(e.recipeId)}/cook`, {
-        planId: p._id,
-        entryId: e._id,
-        servings: e.servings,
-        today: localToday(),
-      });
-      const short = res.cookLog.shortfalls ?? [];
-      setNotice(
-        short.length > 0
-          ? `Cooked. You were short on ${short.map((s) => s.name).join(", ")}; the pantry was used up as far as it went.`
-          : "Cooked. The pantry has been updated."
-      );
+      const res = await cookRequest(e);
+      setNotice(shortText((res.cookLog.shortfalls ?? []).map((x) => x.name)));
+    });
+
+  /** Cooks each dish in turn. If one fails, the ones before it stay cooked and the error is shown. */
+  const cookAll = (list: MealPlanEntry[]) =>
+    act(async () => {
+      const short: string[] = [];
+      for (const e of list) {
+        const res = await cookRequest(e);
+        short.push(...(res.cookLog.shortfalls ?? []).map((x) => x.name));
+      }
+      setNotice(shortText(short));
+    });
+
+  const setCourse = (e: MealPlanEntry, course: Course) =>
+    act(async () => {
+      await api.patch(`${planUrl}/entries/${e._id}`, { course });
     });
 
   return (
@@ -134,56 +165,89 @@ export function PlanPage() {
               {list.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-line px-3 py-2 text-sm text-muted">Nothing planned.</p>
               ) : (
-                <ul className="grid gap-2">
-                  {list.map((e) => {
-                    const done = Boolean(e.cookedAt);
-                    const log = cookByEntry.get(e._id);
+                <div className="grid gap-3">
+                  {bySlot(d).map((g) => {
+                    const todo = g.entries.filter((e) => !e.cookedAt);
                     return (
-                      <li key={e._id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface p-3">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">
-                            {nameOfRecipe(refId(e.recipeId))} {done ? <Badge tone="good">cooked</Badge> : null}
-                          </p>
-                          <p className="text-sm text-muted">
-                            {slotLabel(e.slot)} &middot; serves {e.servings}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {done ? (
-                            log ? (
-                              <Button
-                                variant="secondary"
-                                onClick={() =>
-                                  act(async () => {
-                                    await api.post(`${hh}/cooks/${log._id}/undo`, {});
-                                    setNotice("Undone. The ingredients are back in the pantry.");
-                                  })
-                                }
-                              >
-                                Undo cook
-                              </Button>
-                            ) : null
-                          ) : (
-                            <Button onClick={() => cook(e)}>Cook</Button>
-                          )}
-                          {!done ? (
-                            <Button
-                              variant="ghost"
-                              aria-label="Remove from plan"
-                              onClick={() =>
-                                act(async () => {
-                                  await api.del(`${planUrl}/entries/${e._id}`);
-                                })
-                              }
-                            >
-                              Remove
+                      <div key={g.slot} className="rounded-xl border border-line bg-surface">
+                        <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
+                          <h3 className="text-sm font-medium">{slotLabel(g.slot)}</h3>
+                          {todo.length > 1 ? (
+                            <Button variant="secondary" onClick={() => cookAll(todo)}>
+                              Cook all {todo.length}
                             </Button>
                           ) : null}
                         </div>
-                      </li>
+                        <ul className="divide-y divide-line">
+                          {g.entries.map((e) => {
+                            const done = Boolean(e.cookedAt);
+                            const log = cookByEntry.get(e._id);
+                            return (
+                              <li key={e._id} className="flex flex-wrap items-center justify-between gap-2 p-3">
+                                <div className="min-w-0">
+                                  <p className="truncate font-medium">
+                                    {nameOfRecipe(refId(e.recipeId))} {done ? <Badge tone="good">cooked</Badge> : null}
+                                  </p>
+                                  <p className="flex items-center gap-2 text-sm text-muted">
+                                    {done ? (
+                                      courseLabel(courseOf(e))
+                                    ) : (
+                                      <select
+                                        aria-label={`Course for ${nameOfRecipe(refId(e.recipeId))}`}
+                                        className="rounded border border-line bg-surface px-1 py-0.5 text-xs text-ink"
+                                        value={courseOf(e)}
+                                        onChange={(ev) => setCourse(e, ev.target.value as Course)}
+                                      >
+                                        {COURSES.map((c) => (
+                                          <option key={c.value} value={c.value}>
+                                            {c.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    )}
+                                    <span>&middot; serves {e.servings}</span>
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  {done ? (
+                                    log ? (
+                                      <Button
+                                        variant="secondary"
+                                        onClick={() =>
+                                          act(async () => {
+                                            await api.post(`${hh}/cooks/${log._id}/undo`, {});
+                                            setNotice("Undone. The ingredients are back in the pantry.");
+                                          })
+                                        }
+                                      >
+                                        Undo cook
+                                      </Button>
+                                    ) : null
+                                  ) : (
+                                    <Button onClick={() => cook(e)}>Cook</Button>
+                                  )}
+                                  {!done ? (
+                                    <Button
+                                      variant="ghost"
+                                      aria-label="Remove from plan"
+                                      onClick={() =>
+                                        act(async () => {
+                                          await api.del(`${planUrl}/entries/${e._id}`);
+                                        })
+                                      }
+                                    >
+                                      Remove
+                                    </Button>
+                                  ) : null}
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
                     );
                   })}
-                </ul>
+                </div>
               )}
             </section>
           );
@@ -232,11 +296,12 @@ function AddEntry({
 }: {
   recipes: Recipe[];
   defaultDate: string;
-  onAdd: (body: { date: string; slot: MealSlot; recipeId: string; servings: number }) => Promise<void>;
+  onAdd: (body: { date: string; slot: MealSlot; course: Course; recipeId: string; servings: number }) => Promise<void>;
 }) {
   const [date, setDate] = useState(defaultDate);
   const [slot, setSlot] = useState<MealSlot>("dinner");
   const [recipeId, setRecipeId] = useState("");
+  const [course, setCourse] = useState<Course>("main");
   const [servings, setServings] = useState("");
   const [err, setErr] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -252,16 +317,17 @@ function AddEntry({
     setErr(errs);
     if (Object.keys(errs).length > 0) return;
     setBusy(true);
-    await onAdd({ date, slot, recipeId, servings: s });
+    await onAdd({ date, slot, course, recipeId, servings: s });
     setBusy(false);
     setRecipeId("");
+    setCourse("main");
     setServings("");
   };
 
   if (recipes.length === 0) return <p className="text-sm text-muted">Add a recipe first, then you can plan meals with it.</p>;
 
   return (
-    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-[8rem_7rem_1fr_6rem_auto] sm:items-end" noValidate>
+    <form onSubmit={submit} className="grid gap-3 sm:grid-cols-[8rem_7rem_7rem_1fr_6rem_auto] sm:items-end" noValidate>
       <Field label="Day" htmlFor="e-date">
         <input id="e-date" type="date" className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
@@ -274,8 +340,21 @@ function AddEntry({
           ))}
         </select>
       </Field>
+      <Field label="Course" htmlFor="e-course">
+        <select id="e-course" className={inputCls} value={course} onChange={(e) => setCourse(e.target.value as Course)}>
+          {COURSES.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      </Field>
       <Field label="Recipe" htmlFor="e-recipe" error={err.recipe}>
-        <select id="e-recipe" className={inputCls} value={recipeId} onChange={(e) => setRecipeId(e.target.value)}>
+        <select id="e-recipe" className={inputCls} value={recipeId} onChange={(e) => {
+            setRecipeId(e.target.value);
+            // a recipe tagged "side" or "dessert" suggests its course
+            setCourse(courseFromTags(recipes.find((r) => r._id === e.target.value)?.tags));
+          }}>
           <option value="">Choose…</option>
           {recipes.map((r) => (
             <option key={r._id} value={r._id}>

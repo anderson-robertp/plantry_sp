@@ -96,3 +96,21 @@ describe("pickFocusPlan", () => {
     expect(pickFocusPlan([], "2026-10-20")).toBeNull();
   });
 });
+
+import { courseFromTags, courseOf, courseRank } from "./format";
+describe("courses", () => {
+  it("treats a missing course as main", () => {
+    expect(courseOf({})).toBe("main");
+    expect(courseOf({ course: "side" })).toBe("side");
+  });
+  it("guesses a course from tags", () => {
+    expect(courseFromTags(["dinner", "Dessert"])).toBe("dessert");
+    expect(courseFromTags(["side"])).toBe("side");
+    expect(courseFromTags(["dinner"])).toBe("main");
+    expect(courseFromTags(undefined)).toBe("main");
+  });
+  it("orders a meal appetizer, main, side, dessert, drink", () => {
+    const sorted = ["dessert", "side", "main", "drink", "appetizer"].sort((a, b) => courseRank(a) - courseRank(b));
+    expect(sorted).toEqual(["appetizer", "main", "side", "dessert", "drink"]);
+  });
+});

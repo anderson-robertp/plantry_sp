@@ -30,7 +30,13 @@ export async function addPlanEntry(householdId: string, planId: string, input: M
   await assertRecipesBelongToHousehold(householdId, [input]);
 
   stretchTo(plan, input.date);
-  plan.entries.push({ date: input.date, slot: input.slot, recipeId: input.recipeId, servings: input.servings } as never);
+  plan.entries.push(
+    { date: input.date,
+      slot: input.slot,
+      ...(input.course ? { course: input.course } : {}),
+      recipeId: input.recipeId,
+      servings: input.servings 
+    } as never);
   return plan.save();
 }
 
@@ -56,6 +62,7 @@ export async function updatePlanEntry(
 
   if (patch.date !== undefined) entry.date = patch.date;
   if (patch.slot !== undefined) entry.slot = patch.slot;
+  if (patch.course !== undefined) entry.course = patch.course;
   if (patch.recipeId !== undefined) entry.recipeId = patch.recipeId as never;
   if (patch.servings !== undefined) entry.servings = patch.servings;
   return plan.save();

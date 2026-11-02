@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_PLAN_DAYS, MEAL_SLOTS, UNIT_SYSTEMS } from "../utils/mealPlanConstants.js";
+import { MAX_PLAN_DAYS, COURSES, MEAL_SLOTS, UNIT_SYSTEMS } from "../utils/mealPlanConstants.js";
 import { objectIdSchema } from "./common.js";
 
 /** "2026-10-20" must be a real day: rejects "2026-02-30" and "2026-13-01". */
@@ -49,6 +49,7 @@ export function planDateIssues(plan: PlanShape): string[] {
 export const mealPlanEntryInput = z.object({
   date: isoDateSchema,
   slot: z.enum(MEAL_SLOTS),
+  course: z.enum(COURSES).optional(),
   recipeId: objectIdSchema,
   servings: z.number().positive().max(100),
 });

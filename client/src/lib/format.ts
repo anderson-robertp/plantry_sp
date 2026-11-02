@@ -138,3 +138,31 @@ export function pickFocusPlan<T extends { startDate: string; endDate: string }>(
   if (upcoming) return upcoming;
   return byStart[byStart.length - 1] ?? null;
 }
+
+export const COURSES = [
+  { value: "appetizer", label: "Appetizer" },
+  { value: "main", label: "Main" },
+  { value: "side", label: "Side" },
+  { value: "dessert", label: "Dessert" },
+  { value: "drink", label: "Drink" },
+] as const;
+
+type CourseValue = (typeof COURSES)[number]["value"];
+
+/** Older plan entries have no course; they are mains. */
+export const courseOf = (e: { course?: CourseValue | undefined }): CourseValue => e.course ?? "main";
+
+export const courseLabel = (c: string): string => COURSES.find((x) => x.value === c)?.label ?? c;
+
+/** Serving order: appetizer, main, side, dessert, drink. */
+export const courseRank = (c: string): number => {
+  const i = COURSES.findIndex((x) => x.value === c);
+  return i === -1 ? COURSES.length : i;
+};
+
+/** Best first guess at a course from a recipe's tags ("side", "dessert"...), else main. */
+export function courseFromTags(tags: readonly string[] | undefined): CourseValue {
+  const t = new Set((tags ?? []).map((x) => x.toLowerCase()));
+  for (const c of ["dessert", "side", "appetizer", "drink"] as const) if (t.has(c)) return c;
+  return "main";
+}
