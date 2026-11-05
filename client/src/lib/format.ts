@@ -166,3 +166,5 @@ export function courseFromTags(tags: readonly string[] | undefined): CourseValue
   for (const c of ["dessert", "side", "appetizer", "drink"] as const) if (t.has(c)) return c;
   return "main";
 }
+
+export const INGREDIENT_CATEGORIES = ["produce", "meat", "dairy", "frozen", "canned", "grains", "baking", "condiments", "spices", "beverages", "snacks", "other"] as const;

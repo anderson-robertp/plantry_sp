@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { Button, Field, inputCls } from "../components/ui";
 import { fieldErrors, messageOf } from "../lib/api";
 import { api } from "../lib/client";
@@ -45,6 +46,12 @@ export function HouseholdSetupPage({ onCreated }: { onCreated: () => void }) {
           {busy ? "Creating…" : "Create household"}
         </Button>
       </form>
+      <p className="text-center text-sm text-muted">
+        Were you invited to someone else's household?{" "}
+        <Link to="/join" className="underline">
+          Join it instead
+        </Link>
+      </p>
     </div>
   );
 }

@@ -209,3 +209,57 @@ export interface Dashboard {
   recentCooks: { id: string; recipeName: string; servings: number; cookedAt: string }[];
   recipes: { count: number; cookableNow: number };
 }
+
+export interface AdminIngredient {
+  _id: string;
+  name: string;
+  normalizedName: string;
+  category?: string;
+  baseUnitType: BaseUnitType;
+  defaultUnit?: Unit;
+  gramsPerMl?: number;
+  gramsPerPiece?: number;
+  aliases?: string[];
+  isStaple?: boolean;
+  package?: PackageDef | null;
+  /** Only on the single-ingredient endpoint. */
+  usedBy?: { recipes: number; pantry: number };
+}
+
+export interface AdminList {
+  items: AdminIngredient[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface Member {
+  userId: string;
+  name: string;
+  role: "owner" | "member";
+  joinedAt?: string;
+  you: boolean;
+  /** Only the owner sees emails. */
+  email?: string;
+}
+
+export interface PendingInvite {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** Returned once, when an invite is made. The server keeps only hashes, so it can't be shown again. */
+export interface CreatedInvite {
+  invite: PendingInvite;
+  token: string;
+  code: string;
+}
+
+export interface InvitePreview {
+  householdName: string;
+  memberCount: number;
+  alreadyMember: boolean;
+  full: boolean;
+  expiresAt: string;
+}

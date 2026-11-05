@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useHousehold } from "../auth/HouseholdContext";
+import { useIsAdmin } from "../hooks/useIsAdmin";
 import { Button } from "./ui";
 
 const links = [
@@ -10,11 +11,14 @@ const links = [
   { to: "/match", label: "What can I cook?" },
   { to: "/plans", label: "Meal plans" },
   { to: "/shopping", label: "Shopping" },
+  { to: "/people", label: "People" },
 ];
 
 export function AppShell() {
   const { user, logout } = useAuth();
   const { household, households, select } = useHousehold();
+  const { isAdmin } = useIsAdmin();
+  const navLinks = isAdmin ? [...links, { to: "/admin", label: "Admin" }] : links;
 
   return (
     <div className="min-h-screen">
@@ -47,7 +51,7 @@ export function AppShell() {
           </div>
         </div>
         <nav aria-label="Main" className="mx-auto flex max-w-4xl gap-1 overflow-x-auto px-3">
-          {links.map((l) => (
+          {navLinks.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
