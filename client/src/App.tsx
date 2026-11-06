@@ -7,6 +7,8 @@ import { AppShell } from "./components/AppShell";
 import { ErrorBanner, Loading } from "./components/ui";
 import { AdminIngredientsPage } from "./pages/AdminIngredientsPage";
 import { useIsAdmin } from "./hooks/useIsAdmin";
+import { PrefsProvider } from "./hooks/usePrefs";
+import { SettingsPage } from "./pages/SettingsPage";
 import { AuthPage } from "./pages/AuthPage";
 import { HouseholdSetupPage } from "./pages/HouseholdSetupPage";
 import { JoinPage } from "./pages/JoinPage";
@@ -47,7 +49,9 @@ function RequireHousehold() {
         </div>
       )}
     >
-      <Outlet />
+      <PrefsProvider>
+        <Outlet />
+      </PrefsProvider>
     </HouseholdProvider>
   );
 }
@@ -74,6 +78,7 @@ export function App() {
                 </Route>
                 <Route path="shopping" element={<ShoppingHomePage />} />
                 <Route path="people" element={<PeoplePage />} />
+                <Route path="settings" element={<SettingsPage />} />
                 <Route path="plans" element={<PlansPage />} />
                 <Route path="plans/:planId" element={<PlanPage />} />
                 <Route path="plans/:planId/shopping" element={<ShoppingPage />} />

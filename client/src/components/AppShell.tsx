@@ -12,6 +12,7 @@ const links = [
   { to: "/plans", label: "Meal plans" },
   { to: "/shopping", label: "Shopping" },
   { to: "/people", label: "People" },
+  { to: "/settings", label: "Settings" },
 ];
 
 export function AppShell() {

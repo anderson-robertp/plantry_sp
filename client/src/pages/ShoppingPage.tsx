@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useHousehold } from "../auth/HouseholdContext";
 import { Badge, Button, Card, ErrorBanner, Field, inputCls, Loading, PageHeader } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
+import { usePrefs } from "../hooks/usePrefs";
 import { ApiError, messageOf } from "../lib/api";
 import { api } from "../lib/client";
 import { amount, localToday, LOCATIONS, packageCountText, UNITS } from "../lib/format";
@@ -16,7 +17,10 @@ export function ShoppingPage() {
   const [latest, setLatest] = useState<ShoppingList | null>(null);
   const [problem, setProblem] = useState<unknown>(null);
   const [includeStaples, setIncludeStaples] = useState(false);
-  const [unitSystem, setUnitSystem] = useState<"metric" | "us">("metric");
+  const { householdUnitSystem } = usePrefs();
+  // the household's choice, unless this list is changed by hand
+  const [unitChoice, setUnitChoice] = useState<"metric" | "us" | null>(null);
+  const unitSystem = unitChoice ?? householdUnitSystem;
   const [stocking, setStocking] = useState(false);
 
   const list = latest ?? data;
@@ -55,7 +59,7 @@ export function ShoppingPage() {
         <select
           className="rounded-md border border-line bg-surface px-2 py-1 text-ink"
           value={unitSystem}
-          onChange={(e) => setUnitSystem(e.target.value as "metric" | "us")}
+          onChange={(e) => setUnitChoice(e.target.value as "metric" | "us")}
         >
           <option value="metric">Metric</option>
           <option value="us">US</option>

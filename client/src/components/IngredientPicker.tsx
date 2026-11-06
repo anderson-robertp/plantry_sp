@@ -10,6 +10,8 @@ export interface PickedIngredient {
   id: string;
   name: string;
   baseUnitType?: BaseUnitType;
+  /** Lets the forms start in cups or grams to suit the person. */
+  gramsPerMl?: number | null | undefined;
 }
 
 const CATEGORIES = ["produce", "meat", "dairy", "frozen", "canned", "grains", "baking", "condiments", "spices", "beverages", "snacks", "other"];
@@ -75,7 +77,7 @@ export function IngredientPicker({
 
   const choose = (ing: Ingredient) => {
     rememberIngredient(householdId, ing);
-    onChange({ id: ing._id, name: ing.name, baseUnitType: ing.baseUnitType });
+    onChange({ id: ing._id, name: ing.name, baseUnitType: ing.baseUnitType, gramsPerMl: ing.gramsPerMl });
     setOpen(false);
     setCreating(false);
     setQuery("");

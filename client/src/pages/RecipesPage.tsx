@@ -3,7 +3,10 @@ import { useHousehold } from "../auth/HouseholdContext";
 import { IngredientPicker, type PickedIngredient } from "../components/IngredientPicker";
 import { Badge, Button, Card, EmptyState, ErrorBanner, Field, inputCls, Loading, PageHeader } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
+import { useIngredientDetails } from "../hooks/useIngredientDetails";
 import { useIngredientNames } from "../hooks/useIngredientNames";
+import { usePrefs } from "../hooks/usePrefs";
+import { defaultUnitFor, displayAmount } from "../lib/convert";
 import { fieldErrors, messageOf } from "../lib/api";
 import { api } from "../lib/client";
 import { amount, asList, refId, refName, UNITS } from "../lib/format";
@@ -161,6 +164,8 @@ function RecipeDetails({ householdId, url }: { householdId: string; url: string 
     return k;
   }, [lines]);
   const nameOf = useIngredientNames(householdId, lines.map((l) => refId(l.ingredientId)), known);
+  const detail = useIngredientDetails(householdId, lines.map((l) => refId(l.ingredientId)));
+  const { prefs } = usePrefs();
 
   if (loading && !recipe) return <p className="mt-3 text-sm text-muted">Loading…</p>;
   if (error) return <div className="mt-3"><ErrorBanner error={error} onRetry={reload} /></div>;
@@ -179,7 +184,17 @@ function RecipeDetails({ householdId, url }: { householdId: string; url: string 
                 <span>
                   {nameOf(refId(l.ingredientId))} {l.optional ? <Badge>optional</Badge> : null}
                 </span>
-                <span className="shrink-0 text-muted">{amount(l.quantity, l.unit)}</span>
+                <span className="shrink-0 text-muted">
+                  {(() => {
+                    const shown = displayAmount(l, detail(refId(l.ingredientId)), prefs);
+                    return (
+                      <span title={shown.converted ? `As written: ${amount(l.quantity, l.unit)}` : undefined}>
+                        {shown.converted ? "≈ " : ""}
+                        {shown.text}
+                      </span>
+                    );
+                  })()}
+                </span>
               </li>
             ))}
           </ul>
@@ -284,7 +299,6 @@ interface Line {
   extra?: Record<string, unknown>;
 }
 
-const defaultUnitFor = (t?: string): Unit => (t === "count" ? "piece" : t === "volume" ? "ml" : "g");
 let lineKey = 0;
 const newLine = (): Line => ({ key: ++lineKey, ingredient: null, quantity: "", unit: "g", optional: false });
 
@@ -301,6 +315,7 @@ function RecipeForm({
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  const { prefs } = usePrefs();
   const [name, setName] = useState(existing?.name ?? "");
   const [servings, setServings] = useState(existing ? String(existing.servings) : "2");
   const [steps, setSteps] = useState((existing?.steps ?? []).join("\n"));
@@ -382,7 +397,7 @@ function RecipeForm({
                 householdId={householdId}
                 label="Ingredient"
                 value={l.ingredient}
-                onChange={(ing) => update(l.key, { ingredient: ing, ...(ing ? { unit: defaultUnitFor(ing.baseUnitType) } : {}) })}
+                onChange={(ing) => update(l.key, { ingredient: ing, ...(ing ? { unit: defaultUnitFor(ing, prefs) } : {}) })}
                 error={fe[`line.${i}.ingredient`] ?? fe[`ingredients.${i}.ingredientId`]}
               />
               <Field label="Amount" error={fe[`line.${i}.quantity`] ?? fe[`ingredients.${i}.quantity`]}>

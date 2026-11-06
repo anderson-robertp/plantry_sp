@@ -4,6 +4,8 @@ import { IngredientPicker, type PickedIngredient } from "../components/Ingredien
 import { Badge, Button, Card, EmptyState, ErrorBanner, Field, inputCls, Loading, PageHeader, type Tone } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
 import { useIngredientNames } from "../hooks/useIngredientNames";
+import { usePrefs } from "../hooks/usePrefs";
+import { defaultUnitFor } from "../lib/convert";
 import { ApiError, fieldErrors, messageOf } from "../lib/api";
 import { api } from "../lib/client";
 import { amount, asList, expiryInfo, LOCATIONS, refId, refName, UNITS } from "../lib/format";
@@ -173,6 +175,7 @@ function PantryForm({
   onCancel: () => void;
   onSaved: () => void;
 }) {
+  const { prefs } = usePrefs();
   const [ingredient, setIngredient] = useState<PickedIngredient | null>(null);
   const [quantity, setQuantity] = useState(existing ? String(existing.quantity) : "");
   const [unit, setUnit] = useState<Unit>(existing?.unit ?? "g");
@@ -229,7 +232,7 @@ function PantryForm({
           value={ingredient}
           onChange={(ing) => {
             setIngredient(ing);
-            if (ing?.baseUnitType) setUnit(ing.baseUnitType === "count" ? "piece" : ing.baseUnitType === "volume" ? "ml" : "g");
+            if (ing) setUnit(defaultUnitFor(ing, prefs));
           }}
           error={fe.ingredientId}
         />

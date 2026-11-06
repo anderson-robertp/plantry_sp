@@ -40,6 +40,8 @@ export interface Ingredient {
   category?: string;
   baseUnitType: BaseUnitType;
   defaultUnit?: Unit;
+  gramsPerMl?: number | null;
+  gramsPerPiece?: number | null;
   package?: PackageDef | null;
   householdId?: string | null;
 }

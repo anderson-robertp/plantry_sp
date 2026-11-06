@@ -19,6 +19,7 @@ import mealPlanEntryRoutes from "./routes/mealPlanEntryRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import { householdInviteRoutes, inviteLookupRoutes } from "./routes/inviteRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { mePreferencesRoutes, householdSettingsRoutes } from "./routes/settingsRoutes.js";
 import swaggerUi from "swagger-ui-express";
 import { openApiDocument } from "./config/openapi.js";
 
@@ -57,6 +58,9 @@ app.use("/api/households", dashboardRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/households", householdInviteRoutes);
 app.use("/api/invites", inviteLookupRoutes);
+app.use("/api/me", mePreferencesRoutes);
+app.use("/api/households", householdSettingsRoutes);
+
 
 // Error handling middleware
 app.use(errorHandler)
