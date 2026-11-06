@@ -87,7 +87,7 @@ function NewPlanForm({ base, onCancel, onSaved }: { base: string; onCancel: () =
       <Field label="Name (optional)" htmlFor="p-name" error={fe.name}>
         <input id="p-name" className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Week of Oct 26" />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 min-[420px]:grid-cols-2">
         <Field label="First day" htmlFor="p-start" error={fe.startDate}>
           <input id="p-start" type="date" className={inputCls} value={start} onChange={(e) => setStart(e.target.value)} required />
         </Field>

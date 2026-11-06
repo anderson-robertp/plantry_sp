@@ -32,15 +32,18 @@ export function IngredientPicker({
   onChange,
   label = "Ingredient",
   error,
+  searchHint,
 }: {
   householdId: string;
   value: PickedIngredient | null;
   onChange: (ing: PickedIngredient) => void;
   label?: string;
   error?: string | undefined;
+  /** Starts the search with this text, for lines imported from a recipe. */
+  searchHint?: string | undefined;
 }) {
   const inputId = useId();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(searchHint ?? "");
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<Ingredient[]>([]);
   const [searching, setSearching] = useState(false);
@@ -89,7 +92,7 @@ export function IngredientPicker({
         <input
           id={inputId}
           className={inputCls}
-          placeholder={value ? value.name : "Search ingredients…"}
+          placeholder={value ? value.name : searchHint ? `Find “${searchHint}”` : "Search ingredients…"}
           value={open ? query : value ? value.name : ""}
           onFocus={() => setOpen(true)}
           onChange={(e) => {
@@ -218,9 +221,9 @@ function NewIngredientForm({
       </Field>
 
       <fieldset className="grid gap-2 rounded-lg border border-line p-3">
-        <legend className="px-1 text-xs font-medium text-muted">At the store it comes as (optional)</legend>
-        <div className="grid grid-cols-[1fr_5rem_6rem] gap-2">
-          <Field label="Package" hint="can, bag, box…" error={fe["package.label"]}>
+        <legend className="px-1 text-sm font-medium text-ink">At the store it comes as (optional)</legend>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_5rem_6rem]">
+          <Field label="Package" hint="can, bag, box…" error={fe["package.label"]} className="col-span-2 sm:col-span-1">
             <input className={inputCls} value={pkgLabel} onChange={(e) => setPkgLabel(e.target.value)} list="package-labels" />
             <datalist id="package-labels">
               {["can", "bag", "bottle", "box", "jar", "carton", "pack", "bunch", "loaf"].map((l) => (
@@ -245,12 +248,12 @@ function NewIngredientForm({
       </fieldset>
 
       <details className="rounded-lg border border-line p-3">
-        <summary className="cursor-pointer text-sm">Recipes use another kind of unit? (optional)</summary>
+        <summary className="cursor-pointer py-1 text-sm font-medium">Recipes use another kind of unit? (optional)</summary>
         <p className="mt-2 text-xs text-muted">
           Only needed if a recipe measures this differently from the choice above, such as &ldquo;1 can&rdquo; of something you weigh, or &ldquo;1 cup&rdquo; of
           something you weigh.
         </p>
-        <div className="mt-2 grid grid-cols-2 gap-3">
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <Field label="One piece or can weighs (g)" hint="Can of pork and beans: about 430" error={fe.gramsPerPiece}>
             <input className={inputCls} inputMode="decimal" value={pieceG} onChange={(e) => setPieceG(e.target.value)} />
           </Field>
@@ -260,7 +263,7 @@ function NewIngredientForm({
         </div>
       </details>
 
-      <Field label="Aisle" error={fe.category}>
+      <Field label="Category (store aisle)" error={fe.category}>
         <select className={inputCls} value={category} onChange={(e) => setCategory(e.target.value)}>
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>
@@ -270,7 +273,7 @@ function NewIngredientForm({
         </select>
       </Field>
       {general ? <p role="alert" className="text-xs text-bad">{general}</p> : null}
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 max-sm:[&>button]:flex-1">
         <Button variant="ghost" onClick={onCancel}>
           Back
         </Button>

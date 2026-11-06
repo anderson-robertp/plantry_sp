@@ -1,6 +1,8 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useHousehold } from "../auth/HouseholdContext";
 import { IngredientPicker, type PickedIngredient } from "../components/IngredientPicker";
+import { Guide } from "../components/Guide";
+import { RecipeImportStart } from "../components/RecipeImport";
 import { Badge, Button, Card, EmptyState, ErrorBanner, Field, inputCls, Loading, PageHeader } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
 import { useIngredientDetails } from "../hooks/useIngredientDetails";
@@ -10,7 +12,8 @@ import { defaultUnitFor, displayAmount } from "../lib/convert";
 import { fieldErrors, messageOf } from "../lib/api";
 import { api } from "../lib/client";
 import { amount, asList, refId, refName, UNITS } from "../lib/format";
-import type { Listed, Recipe, Unit } from "../lib/types";
+import { hostOf, needsAttention, previewToFormLines, type LineHint } from "../lib/importLines";
+import type { ImportPreview, Listed, Recipe, Unit } from "../lib/types";
 
 export function RecipesPage() {
   const { household } = useHousehold();
@@ -22,6 +25,8 @@ export function RecipesPage() {
     [base, search]
   );
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [imported, setImported] = useState<ImportPreview | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const all = useMemo(() => asList(data), [data]);
@@ -33,8 +38,58 @@ export function RecipesPage() {
       <PageHeader
         title="Recipes"
         subtitle="What you like to cook, with exact amounts."
-        action={!creating ? <Button onClick={() => setCreating(true)}>New recipe</Button> : null}
+        action={
+          !creating && !importing && !imported ? (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => setImporting(true)}>
+                Import from link
+              </Button>
+              <Button onClick={() => setCreating(true)}>New recipe</Button>
+            </div>
+          ) : null
+        }
       />
+
+      <Guide
+        id="recipes"
+        title="Adding a recipe"
+        steps={[
+          <>Start with the name and how many servings the amounts are for.</>,
+          <>Add each ingredient: search, then enter the amount. The unit follows your Settings; change it when the recipe says otherwise.</>,
+          <>Can&rsquo;t find an ingredient? Add it on the spot. Say how recipes measure it (weight, volume or count) and, if you like, how it&rsquo;s sold, such as a can or a bag, so shopping lists say &ldquo;2 cans&rdquo;.</>,
+          <>Tag it (dinner, side, dessert). Tags set the course when you add it to a meal plan.</>,
+          <>Found one online? Use <strong>Import from link</strong>, check the lines it flags, and save.</>,
+        ]}
+        tip="Amounts show in your own units. Tap or hover a converted amount to see it as written."
+      />
+
+      {importing && !imported ? (
+        <Card className="mb-5">
+          <RecipeImportStart
+            householdId={household._id}
+            onCancel={() => setImporting(false)}
+            onPreview={(p) => setImported(p)}
+          />
+        </Card>
+      ) : null}
+
+      {imported ? (
+        <Card className="mb-5">
+          <ImportedRecipe
+            householdId={household._id}
+            preview={imported}
+            onCancel={() => {
+              setImported(null);
+              setImporting(false);
+            }}
+            onSaved={() => {
+              setImported(null);
+              setImporting(false);
+              reload();
+            }}
+          />
+        </Card>
+      ) : null}
 
       {creating ? (
         <Card className="mb-5">
@@ -200,6 +255,14 @@ function RecipeDetails({ householdId, url }: { householdId: string; url: string 
           </ul>
         )}
       </div>
+      {recipe.sourceUrl && /^https?:\/\//i.test(recipe.sourceUrl) ? (
+        <p className="text-muted sm:col-span-2">
+          Source:{" "}
+          <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">
+            {hostOf(recipe.sourceUrl)}
+          </a>
+        </p>
+      ) : null}
       {recipe.steps && recipe.steps.length > 0 ? (
         <div>
           <h3 className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted">Steps</h3>
@@ -297,7 +360,49 @@ interface Line {
   optional: boolean;
   /** Fields this form doesn't edit (notes, group, original text) are kept as they were. */
   extra?: Record<string, unknown>;
+  /** Set on lines imported from a web page. */
+  from?: string;
+  searchHint?: string;
+  hint?: LineHint | undefined;
 }
+
+interface ImportedStart {
+  name: string;
+  servings: number;
+  steps: string[];
+  tags: string[];
+  sourceUrl: string;
+  description?: string | undefined;
+  prepTimeMinutes?: number | undefined;
+  cookTimeMinutes?: number | undefined;
+}
+
+function ImportedRecipe({ householdId, preview, onCancel, onSaved }: { householdId: string; preview: ImportPreview; onCancel: () => void; onSaved: () => void }) {
+  const { prefs } = usePrefs();
+  const initialLines = useMemo<Line[]>(() => previewToFormLines(preview, prefs).map((l) => ({ ...l, key: ++lineKey })), [preview, prefs]);
+  const initial: ImportedStart = {
+    name: preview.name,
+    servings: preview.servings,
+    steps: preview.steps,
+    tags: preview.tags,
+    sourceUrl: preview.sourceUrl,
+    description: preview.description,
+    prepTimeMinutes: preview.prepTimeMinutes,
+    cookTimeMinutes: preview.cookTimeMinutes,
+  };
+  return (
+    <RecipeForm
+      householdId={householdId}
+      initialLines={initialLines}
+      initial={initial}
+      servingsGuessed={preview.servingsGuessed}
+      onCancel={onCancel}
+      onSaved={onSaved}
+    />
+  );
+}
+
+const TAG_SUGGESTIONS = ["breakfast", "lunch", "dinner", "side", "dessert", "snack", "vegetarian", "quick"];
 
 let lineKey = 0;
 const newLine = (): Line => ({ key: ++lineKey, ingredient: null, quantity: "", unit: "g", optional: false });
@@ -306,26 +411,34 @@ function RecipeForm({
   householdId,
   existing,
   initialLines,
+  initial,
+  servingsGuessed,
   onCancel,
   onSaved,
 }: {
   householdId: string;
   existing?: Recipe;
   initialLines?: Line[];
+  initial?: ImportedStart;
+  servingsGuessed?: boolean;
   onCancel: () => void;
   onSaved: () => void;
 }) {
   const { prefs } = usePrefs();
-  const [name, setName] = useState(existing?.name ?? "");
-  const [servings, setServings] = useState(existing ? String(existing.servings) : "2");
-  const [steps, setSteps] = useState((existing?.steps ?? []).join("\n"));
-  const [tags, setTags] = useState((existing?.tags ?? []).join(", "));
+  const [name, setName] = useState(existing?.name ?? initial?.name ?? "");
+  const [servings, setServings] = useState(existing ? String(existing.servings) : initial ? String(initial.servings) : "2");
+  const [steps, setSteps] = useState((existing?.steps ?? initial?.steps ?? []).join("\n"));
+  const [tags, setTags] = useState((existing?.tags ?? initial?.tags ?? []).join(", "));
   const [lines, setLines] = useState<Line[]>(initialLines && initialLines.length > 0 ? initialLines : [newLine()]);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<unknown>(null);
   const [localError, setLocalError] = useState<Record<string, string>>({});
 
-  const update = (key: number, patch: Partial<Line>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+const clearsHint = (h: LineHint | undefined, patch: Partial<Line>) =>
+    h !== undefined &&
+    (("ingredient" in patch && h.kind !== "amount") || ("unit" in patch && h.kind === "unit") || ("quantity" in patch && h.kind === "amount"));
+  const update = (key: number, patch: Partial<Line>) =>
+    setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch, ...(clearsHint(l.hint, patch) ? { hint: undefined } : {}) } : l)));
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -354,6 +467,14 @@ function RecipeForm({
       name: name.trim(),
       servings: s,
       ...(existing ? { tags: tagList, steps: stepList } : { ...(tagList.length > 0 ? { tags: tagList } : {}), ...(stepList.length > 0 ? { steps: stepList } : {}) }),
+      ...(initial && !existing
+        ? {
+            sourceUrl: initial.sourceUrl,
+            ...(initial.description ? { description: initial.description } : {}),
+            ...(initial.prepTimeMinutes ? { prepTimeMinutes: initial.prepTimeMinutes } : {}),
+            ...(initial.cookTimeMinutes ? { cookTimeMinutes: initial.cookTimeMinutes } : {}),
+          }
+        : {}),
       ingredients: filled.map((l) => ({
         ...(l.extra ?? {}),
         ingredientId: l.ingredient!.id,
@@ -372,12 +493,33 @@ function RecipeForm({
     }
   };
 
+  const tagSet = new Set(tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean));
+  const toggleTag = (t: string) => {
+    const next = new Set(tagSet);
+    if (next.has(t)) next.delete(t);
+    else next.add(t);
+    setTags([...next].join(", "));
+  };
+
   const fe = { ...fieldErrors(problem), ...localError };
   const general = problem && Object.keys(fieldErrors(problem)).length === 0 ? messageOf(problem) : null;
   const filledIndex = (key: number) => lines.filter((l) => l.ingredient || l.quantity.trim() !== "").findIndex((l) => l.key === key);
 
   return (
     <form onSubmit={submit} className="grid gap-4" noValidate>
+      {initial ? (
+        <div className="rounded-lg bg-soft p-3 text-sm text-ink" role="status">
+          <p>
+            <strong>Imported from {hostOf(initial.sourceUrl)}.</strong> Look it over, fix anything that&rsquo;s off, then save.
+          </p>
+          {needsAttention(lines) > 0 ? (
+            <p className="mt-1 text-warn">
+              {needsAttention(lines)} ingredient {needsAttention(lines) === 1 ? "line needs" : "lines need"} a look before you can save.
+            </p>
+          ) : null}
+          {servingsGuessed ? <p className="mt-1 text-warn">The page didn&rsquo;t say how many servings it makes, so check that number.</p> : null}
+        </div>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
         <Field label="Recipe name" htmlFor="r-name" error={fe.name}>
           <input id="r-name" className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
@@ -388,18 +530,22 @@ function RecipeForm({
       </div>
 
       <fieldset className="grid gap-3">
-        <legend className="mb-1 text-xs font-medium text-muted">Ingredients (amounts for the servings above)</legend>
+        <legend className="mb-1 text-sm font-medium text-ink">Ingredients <span className="font-normal text-muted">(amounts for the servings above)</span></legend>
         {lines.map((l) => {
           const i = filledIndex(l.key);
           return (
-            <div key={l.key} className="grid gap-2 rounded-lg border border-line p-3 sm:grid-cols-[1fr_6rem_6rem_auto] sm:items-end">
+            <div key={l.key} className="grid grid-cols-2 gap-x-2 gap-y-3 rounded-lg border border-field bg-soft/40 p-3 sm:grid-cols-[1fr_6rem_6rem_auto] sm:items-end sm:gap-2">
+              <p className="col-span-2 text-xs font-semibold uppercase tracking-wide text-muted sm:hidden">Ingredient {lines.indexOf(l) + 1}</p>
+              <div className="col-span-2 sm:col-span-1">
               <IngredientPicker
                 householdId={householdId}
                 label="Ingredient"
                 value={l.ingredient}
-                onChange={(ing) => update(l.key, { ingredient: ing, ...(ing ? { unit: defaultUnitFor(ing, prefs) } : {}) })}
+                searchHint={l.searchHint}
+                onChange={(ing) => update(l.key, { ingredient: ing, ...(ing && !l.from ? { unit: defaultUnitFor(ing, prefs) } : {}) })}
                 error={fe[`line.${i}.ingredient`] ?? fe[`ingredients.${i}.ingredientId`]}
               />
+              </div>
               <Field label="Amount" error={fe[`line.${i}.quantity`] ?? fe[`ingredients.${i}.quantity`]}>
                 <input className={inputCls} inputMode="decimal" value={l.quantity} onChange={(e) => update(l.key, { quantity: e.target.value })} />
               </Field>
@@ -412,17 +558,38 @@ function RecipeForm({
                   ))}
                 </select>
               </Field>
-              <div className="flex items-center gap-2 pb-1.5">
-                <label className="flex items-center gap-1.5 text-xs text-muted">
-                  <input type="checkbox" checked={l.optional} onChange={(e) => update(l.key, { optional: e.target.checked })} />
+              <div className="col-span-2 flex items-center justify-between gap-2 sm:col-span-1 sm:justify-start sm:pb-1.5">
+                <label className="flex min-h-11 items-center gap-2 text-sm text-ink sm:min-h-0 sm:text-xs sm:text-muted">
+                  <input type="checkbox" className="size-5 sm:size-4" checked={l.optional} onChange={(e) => update(l.key, { optional: e.target.checked })} />
                   Optional
                 </label>
                 {lines.length > 1 ? (
                   <Button variant="ghost" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} aria-label="Remove this ingredient">
-                    ✕
+                    <span aria-hidden="true">✕</span>
+                    <span className="sm:hidden">Remove</span>
                   </Button>
                 ) : null}
               </div>
+              {l.from ? <p className="col-span-full text-xs text-muted">From the recipe: &ldquo;{l.from}&rdquo;</p> : null}
+              {l.hint ? (
+                <div className={`col-span-full rounded-md px-3 py-2 text-sm ${l.hint.kind === "check" ? "bg-soft text-ink" : "bg-warn-bg text-warn"}`} role="note">
+                  <p>{l.hint.text}</p>
+                  {l.hint.suggestions.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {l.hint.suggestions.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          className="min-h-9 rounded-full border border-field bg-surface px-3 text-sm font-medium text-ink hover:bg-soft"
+                          onClick={() => update(l.key, { ingredient: s })}
+                        >
+                          Use {s.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           );
         })}
@@ -438,17 +605,28 @@ function RecipeForm({
         </div>
       </fieldset>
 
-      <Field label="Tags" htmlFor="r-tags" hint="Separate with commas: dinner, vegetarian, quick" error={fe.tags}>
-        <input id="r-tags" className={inputCls} value={tags} onChange={(e) => setTags(e.target.value)} list="tag-suggestions" />
-        <datalist id="tag-suggestions">
-          {["breakfast", "lunch", "dinner", "side", "dessert", "snack", "vegetarian", "quick"].map((t) => (
-            <option key={t} value={t} />
-          ))}
-        </datalist>
+      <Field label="Tags (categories)" htmlFor="r-tags" hint="Tap to add, or type your own separated by commas." error={fe.tags}>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Suggested tags">
+          {TAG_SUGGESTIONS.map((t) => {
+            const on = tagSet.has(t);
+            return (
+              <button
+                key={t}
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggleTag(t)}
+                className={`min-h-9 rounded-full border px-3 text-sm font-medium ${on ? "border-accent bg-accent text-accent-ink" : "border-field bg-surface text-ink hover:bg-soft"}`}
+              >
+                {t}
+              </button>
+            );
+          })}
+        </div>
+        <input id="r-tags" className={inputCls} value={tags} onChange={(e) => setTags(e.target.value)} placeholder="dinner, vegetarian" />
       </Field>
 
       <Field label="Steps" htmlFor="r-steps" hint="One step per line. Optional.">
-        <textarea id="r-steps" rows={4} className={inputCls} value={steps} onChange={(e) => setSteps(e.target.value)} />
+        <textarea id="r-steps" rows={5} className={inputCls} value={steps} onChange={(e) => setSteps(e.target.value)} />
       </Field>
 
       {general ? (
@@ -456,7 +634,7 @@ function RecipeForm({
           {general}
         </p>
       ) : null}
-      <div className="flex justify-end gap-2">
+      <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur max-sm:[&>button]:flex-1 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
         <Button variant="ghost" onClick={onCancel}>
           Cancel
         </Button>

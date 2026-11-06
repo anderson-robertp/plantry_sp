@@ -72,6 +72,43 @@ export interface Recipe {
   steps?: string[];
   ingredients: RecipeLine[];
   tags?: string[];
+  sourceUrl?: string;
+}
+
+/** What the server hands back when previewing a recipe from a web page. Nothing is saved yet. */
+export interface ImportIngredient {
+  _id: string;
+  name: string;
+  category?: string;
+  baseUnitType: BaseUnitType;
+  gramsPerMl?: number | null;
+  gramsPerPiece?: number | null;
+  package?: { label: string; size: number; unit: Unit } | null;
+}
+
+export interface ImportLine {
+  originalText: string;
+  quantity: number | null;
+  unit: Unit | null;
+  name: string;
+  notes?: string;
+  optional: boolean;
+  match: { ingredient: ImportIngredient; confidence: "exact" | "close"; unitFits: boolean } | null;
+  suggestions: ImportIngredient[];
+}
+
+export interface ImportPreview {
+  sourceUrl: string;
+  name: string;
+  description?: string;
+  servings: number;
+  servingsGuessed: boolean;
+  steps: string[];
+  tags: string[];
+  prepTimeMinutes?: number;
+  cookTimeMinutes?: number;
+  imageUrl?: string;
+  lines: ImportLine[];
 }
 
 export interface MissingIngredient {

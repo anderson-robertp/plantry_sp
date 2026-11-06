@@ -58,7 +58,7 @@ export function AppShell() {
               to={l.to}
               end={"end" in l}
               className={({ isActive }) =>
-                `whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium ${
+                `whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium sm:py-2 ${
                   isActive ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink"
                 }`
               }

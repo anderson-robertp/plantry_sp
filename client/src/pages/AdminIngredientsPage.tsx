@@ -286,8 +286,8 @@ function EditorForm({ existing, onCancel, onSaved }: { existing?: AdminIngredien
 
       <fieldset className="grid gap-2 rounded-lg border border-line p-3">
         <legend className="px-1 text-xs font-medium text-muted">How it's sold</legend>
-        <div className="grid grid-cols-[1fr_5rem_6rem] gap-2">
-          <Field label="Package" hint="can, bag, box… Clear to remove." error={fe["package.label"]}>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_5rem_6rem]">
+          <Field label="Package" hint="can, bag, box… Clear to remove." error={fe["package.label"]} className="col-span-2 sm:col-span-1">
             <input className={inputCls} value={pkgLabel} onChange={(e) => setPkgLabel(e.target.value)} />
           </Field>
           <Field label="Size" error={fe["package.size"]}>
@@ -306,7 +306,7 @@ function EditorForm({ existing, onCancel, onSaved }: { existing?: AdminIngredien
       </fieldset>
 
       {!existing ? (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Field label="One piece weighs (g)" hint="Needed for count ingredients" error={fe.gramsPerPiece}>
             <input className={inputCls} inputMode="decimal" value={pieceG} onChange={(e) => setPieceG(e.target.value)} />
           </Field>

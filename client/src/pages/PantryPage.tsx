@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useHousehold } from "../auth/HouseholdContext";
 import { IngredientPicker, type PickedIngredient } from "../components/IngredientPicker";
+import { Guide } from "../components/Guide";
 import { Badge, Button, Card, EmptyState, ErrorBanner, Field, inputCls, Loading, PageHeader, type Tone } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
 import { useIngredientNames } from "../hooks/useIngredientNames";
@@ -50,6 +51,17 @@ export function PantryPage() {
         title="Pantry"
         subtitle="Everything you have, and when it runs out."
         action={!adding ? <Button onClick={() => setAdding(true)}>Add item</Button> : null}
+      />
+
+      <Guide
+        id="pantry"
+        title="Adding pantry items"
+        steps={[
+          <>Tap <strong>Add item</strong> and start typing the ingredient. If it isn&rsquo;t there, choose <strong>Add a new ingredient</strong> in the list.</>,
+          <>Enter how much you have. The unit is suggested for you; change it to match what you&rsquo;re holding.</>,
+          <>Say where it lives (pantry, fridge or freezer). An expiry date is optional, but anything expiring soon shows up on Home.</>,
+        ]}
+        tip="Just shopped? Use Add to pantry on the shopping list instead of typing everything in again."
       />
 
       {adding ? (

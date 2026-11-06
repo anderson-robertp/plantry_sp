@@ -8,6 +8,7 @@ import { ErrorBanner, Loading } from "./components/ui";
 import { AdminIngredientsPage } from "./pages/AdminIngredientsPage";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import { PrefsProvider } from "./hooks/usePrefs";
+import { OnboardingGate } from "./components/Onboarding";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AuthPage } from "./pages/AuthPage";
 import { HouseholdSetupPage } from "./pages/HouseholdSetupPage";
@@ -50,7 +51,7 @@ function RequireHousehold() {
       )}
     >
       <PrefsProvider>
-        <Outlet />
+        <OnboardingGate />
       </PrefsProvider>
     </HouseholdProvider>
   );

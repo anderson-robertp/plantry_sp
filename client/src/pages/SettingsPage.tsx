@@ -1,41 +1,17 @@
 import { useState, type ReactNode } from "react";
 import { useHousehold } from "../auth/HouseholdContext";
-import { Card, PageHeader } from "../components/ui";
+import { Button, Card, PageHeader } from "../components/ui";
+import { Choice } from "../components/ChoiceCards";
 import { usePrefs } from "../hooks/usePrefs";
 import { useAsync } from "../hooks/useAsync";
 import { messageOf } from "../lib/api";
 import { api } from "../lib/client";
 import { displayAmount, type Measure, type UnitSystem } from "../lib/convert";
 import type { Member } from "../lib/types";
-
-function Choice<T extends string>({
-  name,
-  value,
-  options,
-  onChange,
-  disabled,
-}: {
-  name: string;
-  value: T;
-  options: { value: T; label: string; hint: string }[];
-  onChange: (v: T) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div role="radiogroup" aria-label={name} className="grid gap-2 sm:grid-cols-2">
-      {options.map((o) => (
-        <label
-          key={o.value}
-          className={`cursor-pointer rounded-xl border p-3 ${value === o.value ? "border-accent bg-soft" : "border-line bg-surface"} ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
-        >
-          <input type="radio" name={name} className="sr-only" checked={value === o.value} disabled={disabled} onChange={() => onChange(o.value)} />
-          <span className="block font-medium">{o.label}</span>
-          <span className="block text-sm text-muted">{o.hint}</span>
-        </label>
-      ))}
-    </div>
-  );
-}
+import { useOnboarding } from "../components/Onboarding";
+import { useAuth } from "../auth/AuthContext";
+import { clearSeen } from "../lib/seen";
+import { getTheme, setTheme, type ThemeChoice } from "../lib/theme";
 
 function Section({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
   return (
@@ -54,6 +30,9 @@ export function SettingsPage() {
   const { prefs, householdUnitSystem, savePrefs, saveHouseholdUnitSystem } = usePrefs();
   const members = useAsync(() => api.get<{ items: Member[] }>(`/api/households/${household._id}/members`), [household._id]);
   const isOwner = members.data?.items.find((m) => m.you)?.role === "owner";
+  const { user } = useAuth();
+  const { start } = useOnboarding();
+  const [tipsReset, setTipsReset] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const save = async (fn: () => Promise<void>) => {
@@ -68,11 +47,29 @@ export function SettingsPage() {
 
   // a live example, so the effect of a choice is visible
   const flour = { baseUnitType: "mass", gramsPerMl: 0.53 } as const;
+  const [theme, setThemeState] = useState<ThemeChoice>(getTheme);
   const example = displayAmount({ quantity: 2, unit: "cup" }, flour, prefs).text;
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="How amounts are shown to you." />
+      <PageHeader title="Settings" subtitle="How Plantry looks and how amounts are shown to you." />
+
+      <Section title="Appearance" note="Saved on this device only, so your phone and laptop can differ.">
+        <Choice<ThemeChoice>
+          name="Theme"
+          columns={3}
+          value={theme}
+          onChange={(t) => {
+            setTheme(t);
+            setThemeState(t);
+          }}
+          options={[
+            { value: "system", label: "Match device", hint: "follows your phone or computer" },
+            { value: "light", label: "Light", hint: "always light" },
+            { value: "dark", label: "Dark", hint: "always dark" },
+          ]}
+        />
+      </Section>
 
       <Section title="Your units" note="Only affects how you see recipes and which unit new ingredients start with. Others in your household choose their own.">
         <Choice<UnitSystem>
@@ -113,6 +110,24 @@ export function SettingsPage() {
             { value: "metric", label: "Metric", hint: "kilograms, grams, litres" },
           ]}
         />
+      </Section>
+
+      <Section title="Help" note="Saved on this device.">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={start}>
+            Replay the welcome tour
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              if (user) clearSeen(user.id, "tip.");
+              setTipsReset(true);
+            }}
+          >
+            Show the page guides again
+          </Button>
+        </div>
+        {tipsReset ? <p role="status" className="text-sm text-muted">Done. The guides will open next time you visit Pantry and Recipes.</p> : null}
       </Section>
 
       <p role="status" className="text-sm text-muted">

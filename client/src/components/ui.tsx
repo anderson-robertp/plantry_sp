@@ -2,12 +2,12 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { messageOf } from "../lib/api";
 
 export const inputCls =
-  "w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-2 focus:outline-accent focus:outline-offset-1 disabled:opacity-60";
+  "min-h-11 w-full rounded-md border border-field bg-surface px-3 py-2 text-base text-ink placeholder:text-muted focus:outline-2 focus:outline-accent focus:outline-offset-1 disabled:opacity-60 sm:min-h-0 sm:text-sm";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
 const variants: Record<Variant, string> = {
   primary: "bg-accent text-accent-ink hover:opacity-90",
-  secondary: "border border-line bg-surface text-ink hover:bg-soft",
+  secondary: "border border-field bg-surface text-ink hover:bg-soft",
   danger: "bg-bad-bg text-bad hover:opacity-90",
   ghost: "text-muted hover:bg-soft hover:text-ink",
 };
@@ -21,7 +21,7 @@ export function Button({
     <button
       type="button"
       {...rest}
-      className={`inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-opacity focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium min-h-11 sm:min-h-0 transition-opacity focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
     />
   );
 }
@@ -43,7 +43,7 @@ export function Field({
 }) {
   return (
     <div className={`grid min-w-0 gap-1 ${className}`}>
-      <label htmlFor={htmlFor} className="text-xs font-medium text-muted">
+      <label htmlFor={htmlFor} className="text-sm font-medium text-ink">
         {label}
       </label>
       {children}
