@@ -84,6 +84,8 @@ export interface ImportIngredient {
   gramsPerMl?: number | null;
   gramsPerPiece?: number | null;
   package?: { label: string; size: number; unit: Unit } | null;
+  /** true for the shared catalog, which households can't edit */
+  shared?: boolean;
 }
 
 export interface ImportLine {

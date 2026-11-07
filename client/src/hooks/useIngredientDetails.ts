@@ -25,6 +25,11 @@ function fetchOne(householdId: string, id: string): Promise<void> {
   return p;
 }
 
+/** Remember a freshly saved ingredient so every screen sees its new weights straight away. */
+export function primeIngredientDetail(householdId: string, ing: Ingredient): void {
+  cache.set(`${householdId}:${ing._id}`, ing);
+}
+
 /** Full ingredient records (weights and densities) for ids, loaded once and remembered. */
 export function useIngredientDetails(householdId: string, ids: readonly string[]) {
   const [, bump] = useState(0);

@@ -38,9 +38,12 @@ export const createIngredientInput = ingredientBody.superRefine((b, ctx) => {
   if (problem) ctx.addIssue({ code: "custom", message: problem, path: ["package", "unit"] });
 });
 
-/** PATCH: only the descriptive fields can change (see note above). `aliases`, if sent, replaces the list. */
+/**
+ * PATCH: the descriptive fields can change (see note above). `aliases`, if sent, replaces the list.
+ * gramsPerMl and gramsPerPiece can be ADDED when missing but never changed; the services check that.
+ */
 export const updateIngredientInput = ingredientBody
-  .pick({ name: true, category: true, aliases: true, defaultUnit: true, isStaple: true })
+  .pick({ name: true, category: true, aliases: true, defaultUnit: true, isStaple: true, gramsPerMl: true, gramsPerPiece: true })
   // null removes the package. Its unit is checked against the ingredient's type in the service.
   .extend({ package: packageInput.nullable().optional() })
   .partial()

@@ -5,6 +5,7 @@ import { Recipe } from "../models/recipe.js";
 import { AppError, NotFoundError } from "../utils/errors.js";
 import { omitUndefined } from "../utils/object.js";
 import { escapeRegExp, normalizeName } from "../utils/text.js";
+import { weightChangeProblem } from "../utils/weights.js";
 import { packageUnitProblem } from "../validation/ingredient.js";
 import type {
   CreateIngredientInput,
@@ -120,6 +121,9 @@ export async function updateIngredient(
   const { name, aliases, package: pkg, ...rest } = input;
 
   const patch: Record<string, unknown> = omitUndefined(rest);
+
+  const weightProblem = weightChangeProblem(ingredient, rest);
+  if (weightProblem) throw new AppError(weightProblem, 409, "weight_already_set");
 
   if (pkg === null) {
     ingredient.set("package", undefined);

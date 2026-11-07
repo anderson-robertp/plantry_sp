@@ -37,7 +37,7 @@ describe("buildPreview", () => {
   });
 
   it("matches ingredients and keeps the parsed amounts", () => {
-    expect(line(0)).toMatchObject({ quantity: 2, unit: "cup", match: { ingredient: { _id: "flour" }, confidence: "exact", unitFits: true } });
+    expect(line(0)).toMatchObject({ quantity: 2, unit: "cup", match: { ingredient: { _id: "flour", shared: true }, confidence: "exact", unitFits: true } });
     expect(line(1)).toMatchObject({ quantity: 2, unit: "piece", match: { ingredient: { _id: "egg" }, unitFits: true } });
     expect(line(2)).toMatchObject({ quantity: null, match: { ingredient: { _id: "salt" }, confidence: "close" } });
     expect(line(4)).toMatchObject({ quantity: 1, unit: "cup", match: { ingredient: { _id: "milk" } } });

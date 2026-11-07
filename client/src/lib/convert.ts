@@ -17,6 +17,11 @@ export interface Densities {
 type Kind = "mass" | "volume" | "count";
 
 // Same table as the server's utils/units.ts: how many grams, ml or pieces one unit is.
+/** What kind of unit this is: weight, volume or count. */
+export const unitKind = (u: Unit): Kind => UNIT[u].kind;
+
+export const ML_PER_CUP = 236.5882365;
+
 const UNIT: Record<Unit, { kind: Kind; factor: number }> = {
   g: { kind: "mass", factor: 1 },
   kg: { kind: "mass", factor: 1000 },

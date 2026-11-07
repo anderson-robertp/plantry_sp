@@ -4,6 +4,7 @@ import { useAsync } from "../hooks/useAsync";
 import { fieldErrors, messageOf } from "../lib/api";
 import { api } from "../lib/client";
 import { amount, INGREDIENT_CATEGORIES, unitLabel, UNITS_FOR } from "../lib/format";
+import { cupGrams, gramsPerMlFromCup } from "../lib/weights";
 import type { AdminIngredient, AdminList, BaseUnitType, PackageDef, Unit } from "../lib/types";
 
 const MEASURED_BY: { value: BaseUnitType; label: string }[] = [
@@ -195,6 +196,9 @@ function EditorForm({ existing, onCancel, onSaved }: { existing?: AdminIngredien
           ...(defaultUnit ? { defaultUnit } : {}),
           // null removes the package; only send null when there was one to remove
           ...(pkg ? { package: pkg } : existing.package ? { package: null } : {}),
+          // a missing weight can be added once; one that is set never changes
+          ...(!existing.gramsPerPiece && pieceG.trim() !== "" ? { gramsPerPiece: piece } : {}),
+          ...(!existing.gramsPerMl && densityG.trim() !== "" ? { gramsPerMl: Math.round(gramsPerMlFromCup(density) * 10_000) / 10_000 } : {}),
         });
       } else {
         await api.post("/api/admin/ingredients", {
@@ -206,7 +210,7 @@ function EditorForm({ existing, onCancel, onSaved }: { existing?: AdminIngredien
           ...(defaultUnit ? { defaultUnit } : {}),
           ...(pkg ? { package: pkg } : {}),
           ...(pieceG.trim() !== "" ? { gramsPerPiece: piece } : {}),
-          ...(densityG.trim() !== "" ? { gramsPerMl: density } : {}),
+          ...(densityG.trim() !== "" ? { gramsPerMl: Math.round(gramsPerMlFromCup(density) * 10_000) / 10_000 } : {}),
         });
       }
       onSaved();
@@ -246,7 +250,7 @@ function EditorForm({ existing, onCancel, onSaved }: { existing?: AdminIngredien
             <p className="text-xs font-medium text-muted">Measured by (fixed)</p>
             <p>
               {MEASURED_BY.find((m) => m.value === existing.baseUnitType)?.label}
-              {existing.gramsPerMl ? ` · ${existing.gramsPerMl} g/ml` : ""}
+              {existing.gramsPerMl ? ` · 1 cup weighs ${cupGrams(existing.gramsPerMl)} g` : ""}
               {existing.gramsPerPiece ? ` · ${existing.gramsPerPiece} g/piece` : ""}
             </p>
             {existing.usedBy ? (
@@ -305,14 +309,18 @@ function EditorForm({ existing, onCancel, onSaved }: { existing?: AdminIngredien
         </div>
       </fieldset>
 
-      {!existing ? (
+      {!existing || !existing.gramsPerPiece || !existing.gramsPerMl ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="One piece weighs (g)" hint="Needed for count ingredients" error={fe.gramsPerPiece}>
-            <input className={inputCls} inputMode="decimal" value={pieceG} onChange={(e) => setPieceG(e.target.value)} />
-          </Field>
-          <Field label="1 ml weighs (g)" hint="Needed to convert cups to grams" error={fe.gramsPerMl}>
-            <input className={inputCls} inputMode="decimal" value={densityG} onChange={(e) => setDensityG(e.target.value)} />
-          </Field>
+          {!existing || !existing.gramsPerPiece ? (
+            <Field label="One piece weighs (g)" hint={existing ? "Missing. Can be added now, but not changed later." : "Needed to count it by the piece"} error={fe.gramsPerPiece}>
+              <input className={inputCls} inputMode="decimal" value={pieceG} onChange={(e) => setPieceG(e.target.value)} />
+            </Field>
+          ) : null}
+          {!existing || !existing.gramsPerMl ? (
+            <Field label="1 cup weighs (g)" hint={existing ? "Missing. Can be added now, but not changed later." : "Needed to turn cups into grams"} error={fe.gramsPerMl}>
+              <input className={inputCls} inputMode="decimal" value={densityG} onChange={(e) => setDensityG(e.target.value)} />
+            </Field>
+          ) : null}
         </div>
       ) : null}
 

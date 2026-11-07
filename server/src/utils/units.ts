@@ -122,9 +122,17 @@ function wholePackageBase(ing: ConvertibleIngredient): number | null {
   return p.size * def.factor;
 }
 
+/** What to tell someone when a conversion needs a weight the ingredient doesn't have yet. */
+const MISSING_WEIGHT: Record<string, string> = {
+  gramsPerMl:
+    "Can't mix weight and volume for this ingredient yet. Add how much 1 cup of it weighs (gramsPerMl), or use a weight unit such as g or oz.",
+  gramsPerPiece:
+    "Can't count this ingredient by the piece yet. Add how much one piece weighs (gramsPerPiece) or a package size, or use a different unit.",
+};
+
 function requirePositive(value: number | null | undefined, what: string): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    throw new UnitConversionError(`Missing ${what}; cannot convert between unit types.`);
+    throw new UnitConversionError(MISSING_WEIGHT[what] ?? `Missing ${what}; cannot convert between unit types.`);
   }
   return value;
 }

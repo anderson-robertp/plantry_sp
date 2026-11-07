@@ -25,6 +25,8 @@ export interface IngredientSummary {
   gramsPerMl?: number | null | undefined;
   gramsPerPiece?: number | null | undefined;
   package?: { label: string; size: number; unit: Unit } | null | undefined;
+  /** true for the shared catalog, which households can't edit */
+  shared: boolean;
 }
 
 export interface PreviewLine {
@@ -61,6 +63,7 @@ const summary = (i: CatalogIngredient): IngredientSummary => ({
   gramsPerMl: i.gramsPerMl,
   gramsPerPiece: i.gramsPerPiece,
   package: i.package,
+  shared: i.householdId === null,
 });
 
 function fits(i: CatalogIngredient, quantity: number | null, unit: Unit | null): boolean {

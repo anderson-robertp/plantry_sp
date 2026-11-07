@@ -3,6 +3,7 @@ import { rememberIngredient } from "../hooks/useIngredientNames";
 import { fieldErrors, messageOf } from "../lib/api";
 import { api } from "../lib/client";
 import { asList, unitLabel, UNITS_FOR } from "../lib/format";
+import { gramsPerMlFromCup, typicalCupGrams } from "../lib/weights";
 import type { BaseUnitType, Ingredient, Listed, Unit } from "../lib/types";
 import { Button, Field, inputCls } from "./ui";
 
@@ -12,6 +13,10 @@ export interface PickedIngredient {
   baseUnitType?: BaseUnitType;
   /** Lets the forms start in cups or grams to suit the person. */
   gramsPerMl?: number | null | undefined;
+  gramsPerPiece?: number | null | undefined;
+  package?: { size: number; unit: Unit } | null | undefined;
+  /** true for the shared catalog, which households can't edit */
+  shared?: boolean | undefined;
 }
 
 const CATEGORIES = ["produce", "meat", "dairy", "frozen", "canned", "grains", "baking", "condiments", "spices", "beverages", "snacks", "other"];
@@ -21,6 +26,12 @@ const MEASURED_BY: { value: BaseUnitType; label: string }[] = [
   { value: "volume", label: "Volume: cups, ml (milk, oil, broth)" },
   { value: "count", label: "Count: pieces (eggs, onions)" },
 ];
+
+const MEASURED_BY_HELP: Record<BaseUnitType, string> = {
+  mass: "Amounts are kept in grams. Pick this for things you'd put on a scale: flour, cheese, meat, canned goods.",
+  volume: "Amounts are kept in millilitres. Pick this for things you pour: milk, oil, broth.",
+  count: "Amounts are kept as whole items. Pick this for things you count: eggs, onions, lemons.",
+};
 
 /**
  * Type to search the shared catalog and this household's own ingredients, or add a new one.
@@ -80,7 +91,15 @@ export function IngredientPicker({
 
   const choose = (ing: Ingredient) => {
     rememberIngredient(householdId, ing);
-    onChange({ id: ing._id, name: ing.name, baseUnitType: ing.baseUnitType, gramsPerMl: ing.gramsPerMl });
+    onChange({
+      id: ing._id,
+      name: ing.name,
+      baseUnitType: ing.baseUnitType,
+      gramsPerMl: ing.gramsPerMl,
+      gramsPerPiece: ing.gramsPerPiece,
+      package: ing.package ?? null,
+      shared: ing.householdId == null,
+    });
     setOpen(false);
     setCreating(false);
     setQuery("");
@@ -194,7 +213,7 @@ function NewIngredientForm({
           category,
           ...(hasPackage ? { package: { label: pkgLabel.trim(), size, unit } } : {}),
           ...(pieceG.trim() !== "" ? { gramsPerPiece: piece } : {}),
-          ...(densityG.trim() !== "" ? { gramsPerMl: density } : {}),
+          ...(densityG.trim() !== "" ? { gramsPerMl: Math.round(gramsPerMlFromCup(density) * 10_000) / 10_000 } : {}),
         })
       );
     } catch (e) {
@@ -203,6 +222,7 @@ function NewIngredientForm({
     }
   };
 
+  const typical = typicalCupGrams(name);
   const fe = fieldErrors(problem);
   const general = localError ?? (problem && Object.keys(fe).length === 0 ? messageOf(problem) : null);
   return (
@@ -210,7 +230,7 @@ function NewIngredientForm({
       <Field label="Name" error={fe.name}>
         <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
-      <Field label="In recipes, you measure it by" hint="Fixed once saved, because amounts are stored this way." error={fe.baseUnitType}>
+      <Field label="In recipes, you measure it by" hint={`${MEASURED_BY_HELP[baseUnitType]} Can't be changed later.`} error={fe.baseUnitType}>
         <select className={inputCls} value={baseUnitType} onChange={(e) => setBaseUnitType(e.target.value as BaseUnitType)}>
           {MEASURED_BY.map((m) => (
             <option key={m.value} value={m.value}>
@@ -248,17 +268,21 @@ function NewIngredientForm({
       </fieldset>
 
       <details className="rounded-lg border border-line p-3">
-        <summary className="cursor-pointer py-1 text-sm font-medium">Recipes use another kind of unit? (optional)</summary>
+        <summary className="cursor-pointer py-1 text-sm font-medium">Do recipes use cups, spoons or pieces of this? (optional)</summary>
         <p className="mt-2 text-xs text-muted">
-          Only needed if a recipe measures this differently from the choice above, such as &ldquo;1 can&rdquo; of something you weigh, or &ldquo;1 cup&rdquo; of
-          something you weigh.
+          If you weigh it but a recipe says &ldquo;1 cup&rdquo;, Plantry needs to know what a cup weighs. You can skip this now; it will ask the first time a recipe needs it.
         </p>
         <div className="mt-2 grid gap-3 sm:grid-cols-2">
           <Field label="One piece or can weighs (g)" hint="Can of pork and beans: about 430" error={fe.gramsPerPiece}>
             <input className={inputCls} inputMode="decimal" value={pieceG} onChange={(e) => setPieceG(e.target.value)} />
           </Field>
-          <Field label="1 ml weighs (g)" hint="Water, milk, broth: about 1" error={fe.gramsPerMl}>
+          <Field label="1 cup weighs (g)" hint={typical ? `Typical for ${name.trim().toLowerCase()}: about ${typical}` : "Flour about 120, sugar about 200, milk about 245"} error={fe.gramsPerMl}>
             <input className={inputCls} inputMode="decimal" value={densityG} onChange={(e) => setDensityG(e.target.value)} />
+            {typical && densityG.trim() === "" ? (
+              <button type="button" className="min-h-9 text-left text-sm font-medium text-accent hover:underline" onClick={() => setDensityG(String(typical))}>
+                Use {typical} g
+              </button>
+            ) : null}
           </Field>
         </div>
       </details>

@@ -6,6 +6,9 @@ export interface PickedLike {
   name: string;
   baseUnitType?: ImportIngredient["baseUnitType"];
   gramsPerMl?: number | null | undefined;
+  gramsPerPiece?: number | null | undefined;
+  package?: { size: number; unit: Unit } | null | undefined;
+  shared?: boolean | undefined;
 }
 
 export type HintKind = "missing" | "unit" | "amount" | "check";
@@ -30,7 +33,15 @@ export interface FormLine {
   hint?: LineHint;
 }
 
-export const picked = (i: ImportIngredient): PickedLike => ({ id: i._id, name: i.name, baseUnitType: i.baseUnitType, gramsPerMl: i.gramsPerMl });
+export const picked = (i: ImportIngredient): PickedLike => ({
+  id: i._id,
+  name: i.name,
+  baseUnitType: i.baseUnitType,
+  gramsPerMl: i.gramsPerMl,
+  gramsPerPiece: i.gramsPerPiece,
+  package: i.package ?? null,
+  shared: i.shared,
+});
 
 function qtyText(n: number): string {
   return String(Math.round(n * 1000) / 1000);
@@ -50,7 +61,7 @@ export function toFormLine(l: ImportLine, prefs: Prefs): FormLine {
       suggestions: l.suggestions.map(picked),
     };
   } else if (!l.match.unitFits) {
-    hint = { kind: "unit", text: "This unit can't be converted for that ingredient. Pick a different unit, or give the ingredient a weight.", suggestions: [] };
+    hint = { kind: "unit", text: "This unit needs one more detail about that ingredient. See below.", suggestions: [] };
   } else if (l.quantity === null) {
     hint = { kind: "amount", text: "The recipe gives no amount here. Enter one, or remove the line.", suggestions: [] };
   } else if (l.match.confidence === "close") {

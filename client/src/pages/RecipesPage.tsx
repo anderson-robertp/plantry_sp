@@ -4,6 +4,7 @@ import { IngredientPicker, type PickedIngredient } from "../components/Ingredien
 import { FavoriteButton } from "../components/FavoriteButton";
 import { Guide } from "../components/Guide";
 import { RecipeImportStart } from "../components/RecipeImport";
+import { WeightPrompt } from "../components/WeightPrompt";
 import { Badge, Button, Card, EmptyState, ErrorBanner, Field, inputCls, Loading, PageHeader } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
 import { useFavorites } from "../hooks/useFavorites";
@@ -16,6 +17,7 @@ import { api } from "../lib/client";
 import { amount, asList, refId, refName, UNITS } from "../lib/format";
 import { hostOf, needsAttention, previewToFormLines, type LineHint } from "../lib/importLines";
 import type { ImportPreview, Listed, Recipe, Unit } from "../lib/types";
+import { missingWeights, type WeightInfo } from "../lib/weights";
 
 export function RecipesPage() {
   const { household } = useHousehold();
@@ -451,6 +453,22 @@ function RecipeForm({
 const clearsHint = (h: LineHint | undefined, patch: Partial<Line>) =>
     h !== undefined &&
     (("ingredient" in patch && h.kind !== "amount") || ("unit" in patch && h.kind === "unit") || ("quantity" in patch && h.kind === "amount"));
+  // what each line's ingredient is known to weigh, so a unit that can't be converted is caught here
+  const detail = useIngredientDetails(householdId, lines.flatMap((l) => (l.ingredient ? [l.ingredient.id] : [])));
+  const infoOf = (l: Line): (WeightInfo & { shared: boolean | undefined }) | null => {
+    if (!l.ingredient) return null;
+    const p = l.ingredient;
+    const d = detail(p.id);
+    return {
+      baseUnitType: p.baseUnitType ?? d?.baseUnitType,
+      gramsPerMl: p.gramsPerMl ?? d?.gramsPerMl,
+      gramsPerPiece: p.gramsPerPiece ?? d?.gramsPerPiece,
+      package: p.package ?? d?.package ?? null,
+      shared: p.shared ?? (d ? d.householdId == null : undefined),
+    };
+  };
+  const needsOf = (l: Line) => missingWeights(infoOf(l), l.unit);
+
   const update = (key: number, patch: Partial<Line>) =>
     setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch, ...(clearsHint(l.hint, patch) ? { hint: undefined } : {}) } : l)));
 
@@ -466,6 +484,7 @@ const clearsHint = (h: LineHint | undefined, patch: Partial<Line>) =>
       if (!l.ingredient) errs[`line.${i}.ingredient`] = "Choose an ingredient.";
       const q = Number(l.quantity);
       if (l.quantity.trim() === "" || !Number.isFinite(q) || q < 0) errs[`line.${i}.quantity`] = "Enter an amount.";
+      if (l.ingredient && needsOf(l).length > 0) errs[`line.${i}.ingredient`] = "Add the missing weight below, or pick a different unit.";
     });
     setLocalError(errs);
     if (Object.keys(errs).length > 0) return;
@@ -622,6 +641,21 @@ const clearsHint = (h: LineHint | undefined, patch: Partial<Line>) =>
                     </div>
                   ) : null}
                 </div>
+              ) : null}
+              {l.ingredient && needsOf(l).length > 0 ? (
+                <WeightPrompt
+                  householdId={householdId}
+                  ingredient={{ id: l.ingredient.id, name: l.ingredient.name, shared: infoOf(l)?.shared }}
+                  unit={l.unit}
+                  needs={needsOf(l)}
+                  alternative={defaultUnitFor({ baseUnitType: infoOf(l)?.baseUnitType }, prefs)}
+                  onUseAlternative={() => update(l.key, { unit: defaultUnitFor({ baseUnitType: infoOf(l)?.baseUnitType }, prefs) })}
+                  onSaved={(u) =>
+                    update(l.key, {
+                      ingredient: { ...l.ingredient!, gramsPerMl: u.gramsPerMl ?? null, gramsPerPiece: u.gramsPerPiece ?? null },
+                    })
+                  }
+                />
               ) : null}
             </div>
           );

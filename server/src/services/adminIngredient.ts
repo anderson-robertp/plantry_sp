@@ -1,4 +1,4 @@
-import { Ingredient } from "../models/ingredient.js";
+import { Ingredient } from "../models/ingredient.js"
 import { PantryItem } from "../models/pantryItem.js";
 import { Recipe } from "../models/recipe.js";
 import { AppError, NotFoundError } from "../utils/errors.js";
@@ -6,6 +6,7 @@ import { omitUndefined } from "../utils/object.js";
 import { buildAdminIngredientFilter } from "../utils/adminFilter.js";
 import { normalizeName } from "../utils/text.js";
 import type { AdminListIngredientsQuery } from "../validation/admin.js";
+import { weightChangeProblem } from "../utils/weights.js";
 import { packageUnitProblem } from "../validation/ingredient.js";
 import type { CreateIngredientInput, UpdateIngredientInput } from "../validation/ingredient.js";
 
@@ -73,14 +74,18 @@ export async function adminCreateIngredient(input: CreateIngredientInput) {
 }
 
 /**
- * Descriptive fields only (name, aisle, aliases, default unit, staple flag, package). How an
- * ingredient is measured and its weights stay fixed: every saved recipe and pantry row stores a
- * quantity computed from them, so changing them would quietly make those quantities wrong.
+ * Descriptive fields (name, aisle, aliases, default unit, staple flag, package), plus adding a
+ * weight (gramsPerMl, gramsPerPiece) when it is missing. How an ingredient is measured and any
+ * weight already set stay fixed: every saved recipe and pantry row stores a quantity computed
+ * from them, so changing them would quietly make those quantities wrong.
  */
 export async function adminUpdateIngredient(ingredientId: string, input: UpdateIngredientInput) {
   const ingredient = await findShared(ingredientId);
   const { name, aliases, package: pkg, ...rest } = input;
   const patch: Record<string, unknown> = omitUndefined(rest);
+
+  const weightProblem = weightChangeProblem(ingredient, rest);
+  if (weightProblem) throw new AppError(weightProblem, 409, "weight_already_set");
 
   if (pkg === null) {
     ingredient.set("package", undefined);
