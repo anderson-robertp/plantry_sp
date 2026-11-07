@@ -70,8 +70,9 @@ export function expiryInfo(date: string | null | undefined, today: string = loca
   return { text: `Expires ${date.slice(0, 10)}`, tone: "ok" };
 }
 
-/** "1 cup" / "2 piece" style amount. */
+/** "1 cup" style amount. Whole items have no unit to show: just "2". */
 export function amount(quantity: number, unit: string): string {
+  if (unit === "piece") return formatQty(quantity);
   return `${formatQty(quantity)} ${unitLabel(unit)}`;
 }
 

@@ -72,6 +72,8 @@ export interface ConvertibleIngredient {
   baseUnitType: UnitType;
   gramsPerMl?: number | null | undefined;
   gramsPerPiece?: number | null | undefined;
+  /** How it is sold. Lets a recipe line with no unit ("1 can of beans") mean one full package. */
+  package?: { size: number; unit: Unit } | null | undefined;
 }
 
 /**
@@ -104,6 +106,20 @@ export function baseUnitFor(ingredient: ConvertibleIngredient): Unit {
     case "count":
       return "piece";
   }
+}
+
+/**
+ * What "one piece" means for an ingredient that is measured by weight or volume but has no piece
+ * weight: one whole package, in the ingredient's base unit. Null when there is no usable package.
+ */
+function wholePackageBase(ing: ConvertibleIngredient): number | null {
+  if (ing.baseUnitType === "count") return null;
+  if (typeof ing.gramsPerPiece === "number" && ing.gramsPerPiece > 0) return null; // a real piece weight wins
+  const p = ing.package;
+  if (!p || !(p.size > 0)) return null;
+  const def: UnitDef | undefined = UNITS[p.unit];
+  if (!def || def.type !== ing.baseUnitType) return null;
+  return p.size * def.factor;
 }
 
 function requirePositive(value: number | null | undefined, what: string): number {
@@ -171,6 +187,10 @@ export function toBaseQuantity(
     throw new UnitConversionError(`Unknown unit: "${unit}"`);
   }
   const def: UnitDef = UNITS[canonical];
+  if (def.type === "count") {
+    const whole = wholePackageBase(ingredient);
+    if (whole !== null) return round(quantity * def.factor * whole);
+  }
   const inUnitTypeBase = quantity * def.factor; // g, ml, or piece
   return round(convertType(inUnitTypeBase, def.type, ingredient.baseUnitType, ingredient));
 }
@@ -193,6 +213,10 @@ export function fromBaseQuantity(
     throw new UnitConversionError(`Unknown unit: "${unit}"`);
   }
   const def: UnitDef = UNITS[canonical];
+  if (def.type === "count") {
+    const whole = wholePackageBase(ingredient);
+    if (whole !== null) return round(baseQuantity / whole / def.factor);
+  }
   const inUnitTypeBase = convertType(baseQuantity, ingredient.baseUnitType, def.type, ingredient);
   return round(inUnitTypeBase / def.factor);
 }

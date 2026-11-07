@@ -55,7 +55,7 @@ export function RecipesPage() {
         title="Adding a recipe"
         steps={[
           <>Start with the name and how many servings the amounts are for.</>,
-          <>Add each ingredient: search, then enter the amount. The unit follows your Settings; change it when the recipe says otherwise.</>,
+          <>Add each ingredient: search, then enter the amount. The unit follows your Settings; change it when the recipe says otherwise. If the recipe gives no unit (&ldquo;1 can of beans&rdquo;), tick <strong>No unit</strong>.</>,
           <>Can&rsquo;t find an ingredient? Add it on the spot. Say how recipes measure it (weight, volume or count) and, if you like, how it&rsquo;s sold, such as a can or a bag, so shopping lists say &ldquo;2 cans&rdquo;.</>,
           <>Tag it (dinner, side, dessert). Tags set the course when you add it to a meal plan.</>,
           <>Found one online? Use <strong>Import from link</strong>, check the lines it flags, and save.</>,
@@ -550,13 +550,32 @@ const clearsHint = (h: LineHint | undefined, patch: Partial<Line>) =>
                 <input className={inputCls} inputMode="decimal" value={l.quantity} onChange={(e) => update(l.key, { quantity: e.target.value })} />
               </Field>
               <Field label="Unit" error={fe[`ingredients.${i}.unit`]}>
-                <select className={inputCls} value={l.unit} onChange={(e) => update(l.key, { unit: e.target.value as Unit })}>
+                <select
+                  className={inputCls}
+                  value={l.unit}
+                  disabled={l.unit === "piece" && l.ingredient?.baseUnitType !== "count"}
+                  onChange={(e) => update(l.key, { unit: e.target.value as Unit })}
+                >
                   {UNITS.map((u) => (
                     <option key={u.value} value={u.value}>
-                      {u.label}
+                      {u.value === "piece" ? "no unit" : u.label}
                     </option>
                   ))}
                 </select>
+                {l.ingredient?.baseUnitType !== "count" ? (
+                  <label
+                    className="flex min-h-9 items-center gap-2 text-sm text-ink"
+                    title="Counts whole items, or full packages when the ingredient has a package size, like “1 can”."
+                  >
+                    <input
+                      type="checkbox"
+                      className="size-5 sm:size-4"
+                      checked={l.unit === "piece"}
+                      onChange={(e) => update(l.key, { unit: e.target.checked ? "piece" : defaultUnitFor(l.ingredient ?? undefined, prefs) })}
+                    />
+                    No unit
+                  </label>
+                ) : null}
               </Field>
               <div className="col-span-2 flex items-center justify-between gap-2 sm:col-span-1 sm:justify-start sm:pb-1.5">
                 <label className="flex min-h-11 items-center gap-2 text-sm text-ink sm:min-h-0 sm:text-xs sm:text-muted">

@@ -26,7 +26,7 @@ export async function loadIngredientMap(
   const scope = householdId ? { $in: [null, new Types.ObjectId(householdId)] } : null;
 
   const docs = await Ingredient.find({ _id: { $in: unique }, householdId: scope })
-    .select("baseUnitType gramsPerMl gramsPerPiece")
+    .select("baseUnitType gramsPerMl gramsPerPiece package")
     .lean();
 
   const map = new Map<string, ConvertibleIngredient>();
@@ -35,6 +35,7 @@ export async function loadIngredientMap(
       baseUnitType: d.baseUnitType,
       gramsPerMl: d.gramsPerMl,
       gramsPerPiece: d.gramsPerPiece,
+      package: d.package ? { size: d.package.size, unit: d.package.unit } : null,
     });
   }
   return map;
