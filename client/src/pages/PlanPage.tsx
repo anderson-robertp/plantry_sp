@@ -3,6 +3,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useHousehold } from "../auth/HouseholdContext";
 import { Badge, Button, Card, ErrorBanner, Field, inputCls, Loading, PageHeader } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
+import { useFavorites } from "../hooks/useFavorites";
+import { usePrefs } from "../hooks/usePrefs";
+import { planServings, scaleNote } from "../lib/servings";
 import { api } from "../lib/client";
 import { asList, courseFromTags, courseLabel, courseOf, courseRank, COURSES, dayLabel, eachDay, localToday, MEAL_SLOTS, refId } from "../lib/format";
 import type { CookLog, CookResult, Course, Listed, MealPlan, MealPlanEntry, MealSlot, Recipe } from "../lib/types";
@@ -307,10 +310,19 @@ function AddEntry({
   const [busy, setBusy] = useState(false);
 
   const chosen = recipes.find((r) => r._id === recipeId);
+  const { householdSize } = usePrefs();
+  const favorites = useFavorites();
+  const suggested = planServings(householdSize, chosen?.servings);
+  const note = scaleNote(chosen?.servings, Number(servings) > 0 ? Number(servings) : suggested);
+  // favorites first, then A to Z within each group
+  const sorted = useMemo(
+    () => [...recipes].sort((a, b) => Number(favorites.isFavorite(b._id)) - Number(favorites.isFavorite(a._id)) || a.name.localeCompare(b.name)),
+    [recipes, favorites]
+  );
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const s = Number(servings || chosen?.servings || 0);
+    const s = Number(servings || suggested || 0);
     const errs: Record<string, string> = {};
     if (!recipeId) errs.recipe = "Choose a recipe.";
     if (!Number.isFinite(s) || s <= 0) errs.servings = "Enter servings above zero.";
@@ -356,19 +368,24 @@ function AddEntry({
             setCourse(courseFromTags(recipes.find((r) => r._id === e.target.value)?.tags));
           }}>
           <option value="">Choose…</option>
-          {recipes.map((r) => (
+          {sorted.map((r) => (
             <option key={r._id} value={r._id}>
-              {r.name}
+              {favorites.isFavorite(r._id) ? "♥ " : ""}{r.name}
             </option>
           ))}
         </select>
       </Field>
-      <Field label="Servings" htmlFor="e-serv" error={err.servings}>
+      <Field
+        label="Servings"
+        htmlFor="e-serv"
+        error={err.servings}
+        hint={note ?? (householdSize ? `Household of ${householdSize}` : undefined)}
+      >
         <input
           id="e-serv"
           className={inputCls}
           inputMode="decimal"
-          placeholder={chosen ? String(chosen.servings) : ""}
+          placeholder={suggested ? String(suggested) : ""}
           value={servings}
           onChange={(e) => setServings(e.target.value)}
         />

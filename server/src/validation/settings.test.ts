@@ -16,6 +16,11 @@ describe("updatePreferencesInput", () => {
 });
 
 describe("updateHouseholdSettingsInput", () => {
+  it("takes a household size from 1 to 30", () => {
+    expect(updateHouseholdSettingsInput.safeParse({ householdSize: 4 }).success).toBe(true);
+    for (const bad of [0, 31, 2.5, "4", null]) expect(updateHouseholdSettingsInput.safeParse({ householdSize: bad }).success).toBe(false);
+  });
+
   it("takes the unit system", () => {
     expect(updateHouseholdSettingsInput.safeParse({ unitSystem: "us" }).success).toBe(true);
     expect(updateHouseholdSettingsInput.safeParse({}).success).toBe(false);

@@ -4,7 +4,7 @@ import { HouseholdSettings } from "../models/householdSettings.js";
 import { UserPreferences } from "../models/userPreferences.js";
 import { AppError, NotFoundError } from "../utils/errors.js";
 import { omitUndefined } from "../utils/object.js";
-import { withHouseholdDefaults, withPreferenceDefaults } from "../utils/settings.js";
+import { ownerRequired, withHouseholdDefaults, withPreferenceDefaults } from "../utils/settings.js";
 import type { UpdateHouseholdSettingsInput, UpdatePreferencesInput } from "../validation/settings.js";
 
 export async function getPreferences(userId: string) {
@@ -38,8 +38,9 @@ export async function getHouseholdSettings(userId: string, householdId: string) 
 }
 
 export async function updateHouseholdSettings(userId: string, householdId: string, input: UpdateHouseholdSettingsInput) {
-  if ((await roleIn(userId, householdId)) !== "owner") {
-    throw new AppError("Only the owner can change household settings.", 403, "forbidden");
+  const role = await roleIn(userId, householdId); // also 404s for non-members
+  if (ownerRequired(input) && role !== "owner") {
+    throw new AppError("Only the owner can change the shopping list units.", 403, "forbidden");
   }
   const doc = await HouseholdSettings.findOneAndUpdate(
     { householdId: new Types.ObjectId(householdId) },

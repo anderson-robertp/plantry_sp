@@ -21,6 +21,7 @@ import { householdInviteRoutes, inviteLookupRoutes } from "./routes/inviteRoutes
 import { errorHandler } from "./middleware/errorHandler.js";
 import { mePreferencesRoutes, householdSettingsRoutes } from "./routes/settingsRoutes.js";
 import recipeImportRoutes from "./routes/recipeImportRoutes.js";
+import favoritesRoutes from "./routes/favoritesRoutes.js";
 import swaggerUi from "swagger-ui-express";
 import { openApiDocument } from "./config/openapi.js";
 
@@ -62,6 +63,7 @@ app.use("/api/invites", inviteLookupRoutes);
 app.use("/api/me", mePreferencesRoutes);
 app.use("/api/households", householdSettingsRoutes);
 app.use("/api/households", recipeImportRoutes);
+app.use("/api/households", favoritesRoutes);
 
 
 // Error handling middleware

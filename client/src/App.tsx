@@ -9,6 +9,7 @@ import { AdminIngredientsPage } from "./pages/AdminIngredientsPage";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import { PrefsProvider } from "./hooks/usePrefs";
 import { OnboardingGate } from "./components/Onboarding";
+import { FavoritesProvider } from "./hooks/useFavorites";
 import { SettingsPage } from "./pages/SettingsPage";
 import { AuthPage } from "./pages/AuthPage";
 import { HouseholdSetupPage } from "./pages/HouseholdSetupPage";
@@ -51,7 +52,9 @@ function RequireHousehold() {
       )}
     >
       <PrefsProvider>
-        <OnboardingGate />
+        <FavoritesProvider>
+          <OnboardingGate />
+        </FavoritesProvider>
       </PrefsProvider>
     </HouseholdProvider>
   );

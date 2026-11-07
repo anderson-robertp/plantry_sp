@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useHousehold } from "../auth/HouseholdContext";
 import { Button, Card, PageHeader } from "../components/ui";
 import { Choice } from "../components/ChoiceCards";
+import { HouseholdSize } from "../components/HouseholdSize";
 import { usePrefs } from "../hooks/usePrefs";
 import { useAsync } from "../hooks/useAsync";
 import { messageOf } from "../lib/api";
@@ -27,7 +28,7 @@ function Section({ title, note, children }: { title: string; note?: string; chil
 
 export function SettingsPage() {
   const { household } = useHousehold();
-  const { prefs, householdUnitSystem, savePrefs, saveHouseholdUnitSystem } = usePrefs();
+  const { prefs, householdUnitSystem, householdSize, savePrefs, saveHouseholdUnitSystem, saveHouseholdSize } = usePrefs();
   const members = useAsync(() => api.get<{ items: Member[] }>(`/api/households/${household._id}/members`), [household._id]);
   const isOwner = members.data?.items.find((m) => m.you)?.role === "owner";
   const { user } = useAuth();
@@ -97,7 +98,14 @@ export function SettingsPage() {
       </Section>
 
       <Section
-        title="Household"
+        title="Household size"
+        note={`How many people usually eat together at ${household.name}. New meal plan entries start with this many servings, and anyone in the household can change it.`}
+      >
+        <HouseholdSize value={householdSize} onSave={(n) => save(() => saveHouseholdSize(n))} />
+      </Section>
+
+      <Section
+        title="Shopping list units"
         note={`Shopping lists for ${household.name} use one unit system so everyone reads the same list.${isOwner ? "" : " Only the owner can change this."}`}
       >
         <Choice<UnitSystem>

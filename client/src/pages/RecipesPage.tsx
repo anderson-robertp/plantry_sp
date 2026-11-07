@@ -1,10 +1,12 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useHousehold } from "../auth/HouseholdContext";
 import { IngredientPicker, type PickedIngredient } from "../components/IngredientPicker";
+import { FavoriteButton } from "../components/FavoriteButton";
 import { Guide } from "../components/Guide";
 import { RecipeImportStart } from "../components/RecipeImport";
 import { Badge, Button, Card, EmptyState, ErrorBanner, Field, inputCls, Loading, PageHeader } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
+import { useFavorites } from "../hooks/useFavorites";
 import { useIngredientDetails } from "../hooks/useIngredientDetails";
 import { useIngredientNames } from "../hooks/useIngredientNames";
 import { usePrefs } from "../hooks/usePrefs";
@@ -20,6 +22,8 @@ export function RecipesPage() {
   const base = `/api/households/${household._id}/recipes`;
   const [search, setSearch] = useState("");
   const [tag, setTag] = useState<string | null>(null);
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const favorites = useFavorites();
   const { data, error, loading, reload } = useAsync(
     () => api.get<Listed<Recipe>>(base, { search: search.trim() || undefined, limit: 100 }),
     [base, search]
@@ -31,7 +35,10 @@ export function RecipesPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const all = useMemo(() => asList(data), [data]);
   const allTags = useMemo(() => [...new Set(all.flatMap((r) => r.tags ?? []))].sort(), [all]);
-  const recipes = useMemo(() => (tag ? all.filter((r) => (r.tags ?? []).includes(tag)) : all), [all, tag]);
+  const recipes = useMemo(
+    () => all.filter((r) => (!tag || (r.tags ?? []).includes(tag)) && (!onlyFavorites || favorites.isFavorite(r._id))),
+    [all, tag, onlyFavorites, favorites]
+  );
 
   return (
     <>
@@ -59,6 +66,7 @@ export function RecipesPage() {
           <>Can&rsquo;t find an ingredient? Add it on the spot. Say how recipes measure it (weight, volume or count) and, if you like, how it&rsquo;s sold, such as a can or a bag, so shopping lists say &ldquo;2 cans&rdquo;.</>,
           <>Tag it (dinner, side, dessert). Tags set the course when you add it to a meal plan.</>,
           <>Found one online? Use <strong>Import from link</strong>, check the lines it flags, and save.</>,
+          <>Tap the heart on recipes you love. They show first when you plan meals.</>,
         ]}
         tip="Amounts show in your own units. Tap or hover a converted amount to see it as written."
       />
@@ -117,11 +125,16 @@ export function RecipesPage() {
         />
       </div>
 
-      {allTags.length > 0 ? (
+      {allTags.length > 0 || favorites.available ? (
         <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter by tag">
-          <TagChip active={tag === null} onClick={() => setTag(null)}>
+          <TagChip active={tag === null && !onlyFavorites} onClick={() => { setTag(null); setOnlyFavorites(false); }}>
             All
           </TagChip>
+          {favorites.available ? (
+            <TagChip active={onlyFavorites} onClick={() => setOnlyFavorites(!onlyFavorites)}>
+              ♥ Favorites
+            </TagChip>
+          ) : null}
           {allTags.map((t) => (
             <TagChip key={t} active={tag === t} onClick={() => setTag(tag === t ? null : t)}>
               {t}
@@ -133,8 +146,8 @@ export function RecipesPage() {
       {loading && !data ? <Loading /> : null}
       {error ? <ErrorBanner error={error} onRetry={reload} /> : null}
       {!loading && !error && recipes.length === 0 ? (
-        search || tag ? (
-          <EmptyState title="No recipes match" body="Try a different word, or clear the search and tag filter." />
+        search || tag || onlyFavorites ? (
+          <EmptyState title="No recipes match" body={onlyFavorites ? "No favorites yet. Tap the heart on a recipe to add it." : "Try a different word, or clear the search and tag filter."} />
         ) : (
           <EmptyState
             title="No recipes yet"
@@ -155,6 +168,7 @@ export function RecipesPage() {
                 </span>
               </button>
               <div className="flex items-center gap-1">
+                <FavoriteButton recipeId={r._id} name={r.name} />
                 <Button variant="ghost" onClick={() => setOpen(open === r._id ? null : r._id)}>
                   {open === r._id ? "Hide" : "View"}
                 </Button>

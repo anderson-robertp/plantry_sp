@@ -9,6 +9,7 @@ import type { Measure, UnitSystem } from "../lib/convert";
 import { hasSeen, markSeen } from "../lib/seen";
 import type { Member } from "../lib/types";
 import { Choice } from "./ChoiceCards";
+import { HouseholdSize } from "./HouseholdSize";
 import { Button } from "./ui";
 
 const KEY = "welcome";
@@ -48,7 +49,7 @@ export function OnboardingGate() {
 function Tour({ onDone }: { onDone: () => void }) {
   const { user } = useAuth();
   const { household } = useHousehold();
-  const { prefs, householdUnitSystem, savePrefs, saveHouseholdUnitSystem } = usePrefs();
+  const { prefs, householdUnitSystem, householdSize, savePrefs, saveHouseholdUnitSystem, saveHouseholdSize } = usePrefs();
   const navigate = useNavigate();
   const [isOwner, setIsOwner] = useState(false);
   const [step, setStep] = useState(0);
@@ -66,7 +67,7 @@ function Tour({ onDone }: { onDone: () => void }) {
     };
   }, [household._id]);
 
-  const steps = isOwner ? ["welcome", "units", "household", "start"] : ["welcome", "units", "start"];
+  const steps = ["welcome", "units", "household", "start"];
   const current = steps[step] ?? "start";
   const last = step === steps.length - 1;
 
@@ -147,20 +148,28 @@ function Tour({ onDone }: { onDone: () => void }) {
           {current === "household" ? (
             <>
               <h2 id="tour-title" ref={heading} tabIndex={-1} className="mt-1 font-display text-2xl text-ink outline-none">
-                Shopping list units
+                Your household
               </h2>
-              <p className="mt-2 text-sm text-ink">As owner of {household.name}, you choose the units for the shared shopping list, so everyone reads the same one.</p>
+              <p className="mt-2 text-sm text-ink">How many people usually eat together at {household.name}? New meal plan entries start with that many servings.</p>
               <div className="mt-3">
-                <Choice<UnitSystem>
-                  name="Shopping list units"
-                  value={householdUnitSystem}
-                  onChange={(unitSystem) => void save(() => saveHouseholdUnitSystem(unitSystem))}
-                  options={[
-                    { value: "us", label: "US", hint: "ounces, pounds, cups" },
-                    { value: "metric", label: "Metric", hint: "grams, kilograms, litres" },
-                  ]}
-                />
+                <HouseholdSize value={householdSize} onSave={(n) => save(() => saveHouseholdSize(n))} />
               </div>
+              {isOwner ? (
+                <div className="mt-5">
+                  <p className="text-sm text-ink">As owner, you also choose the units for the shared shopping list, so everyone reads the same one.</p>
+                  <div className="mt-3">
+                    <Choice<UnitSystem>
+                      name="Shopping list units"
+                      value={householdUnitSystem}
+                      onChange={(unitSystem) => void save(() => saveHouseholdUnitSystem(unitSystem))}
+                      options={[
+                        { value: "us", label: "US", hint: "ounces, pounds, cups" },
+                        { value: "metric", label: "Metric", hint: "grams, kilograms, litres" },
+                      ]}
+                    />
+                  </div>
+                </div>
+              ) : null}
             </>
           ) : null}
 
