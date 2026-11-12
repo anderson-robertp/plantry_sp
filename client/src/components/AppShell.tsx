@@ -1,25 +1,14 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useHousehold } from "../auth/HouseholdContext";
 import { useIsAdmin } from "../hooks/useIsAdmin";
+import { MainNav } from "./MainNav";
 import { Button } from "./ui";
-
-const links = [
-  { to: "/", label: "Home", end: true },
-  { to: "/pantry", label: "Pantry" },
-  { to: "/recipes", label: "Recipes" },
-  { to: "/match", label: "What can I cook?" },
-  { to: "/plans", label: "Meal plans" },
-  { to: "/shopping", label: "Shopping" },
-  { to: "/people", label: "People" },
-  { to: "/settings", label: "Settings" },
-];
 
 export function AppShell() {
   const { user, logout } = useAuth();
   const { household, households, select } = useHousehold();
   const { isAdmin } = useIsAdmin();
-  const navLinks = isAdmin ? [...links, { to: "/admin", label: "Admin" }] : links;
 
   return (
     <div className="min-h-screen">
@@ -51,22 +40,7 @@ export function AppShell() {
             </Button>
           </div>
         </div>
-        <nav aria-label="Main" className="mx-auto flex max-w-4xl gap-1 overflow-x-auto px-3">
-          {navLinks.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              end={"end" in l}
-              className={({ isActive }) =>
-                `whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium sm:py-2 ${
-                  isActive ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink"
-                }`
-              }
-            >
-              {l.label}
-            </NavLink>
-          ))}
-        </nav>
+        <MainNav isAdmin={isAdmin} />
       </header>
       <main className="mx-auto max-w-4xl px-4 py-6">
         <Outlet />

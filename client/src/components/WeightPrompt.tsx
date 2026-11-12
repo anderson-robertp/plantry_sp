@@ -4,7 +4,7 @@ import { messageOf } from "../lib/api";
 import { api } from "../lib/client";
 import { unitLabel } from "../lib/format";
 import type { Ingredient, Unit } from "../lib/types";
-import { describeNeed, gramsPerMlFromCup, typicalCupGrams, type WeightField } from "../lib/weights";
+import { describeNeed, gramsPerMlFromBasis, typicalCupGrams, typicalForBasis, weightBasis, type WeightField } from "../lib/weights";
 import { Button, Field, inputCls } from "./ui";
 
 /**
@@ -36,7 +36,9 @@ export function WeightPrompt({
 
   const needCup = needs.includes("gramsPerMl");
   const needPiece = needs.includes("gramsPerPiece");
-  const typical = needCup ? typicalCupGrams(ingredient.name) : null;
+  const basis = weightBasis(unit);
+  const typicalCup = needCup ? typicalCupGrams(ingredient.name) : null;
+  const typical = typicalCup === null ? null : typicalForBasis(typicalCup, basis);
 
   const save = async () => {
     const cup = Number(cupG);
@@ -49,7 +51,7 @@ export function WeightPrompt({
     setBusy(true);
     try {
       const updated = await api.patch<Ingredient>(`/api/households/${householdId}/ingredients/${ingredient.id}`, {
-        ...(needCup ? { gramsPerMl: Math.round(gramsPerMlFromCup(cup) * 10_000) / 10_000 } : {}),
+        ...(needCup ? { gramsPerMl: gramsPerMlFromBasis(cup, basis) } : {}),
         ...(needPiece ? { gramsPerPiece: piece } : {}),
       });
       primeIngredientDetail(householdId, updated);
@@ -66,7 +68,7 @@ export function WeightPrompt({
     return (
       <div role="note" className="col-span-full rounded-md bg-warn-bg px-3 py-2 text-sm text-warn">
         <p>
-          Plantry doesn&rsquo;t know {describeNeed(needs)} for <strong>{ingredient.name}</strong>, so it can&rsquo;t use {unitLabel(unit)} here. Use {unitLabel(alternative)} instead.
+          Plantry doesn&rsquo;t know {describeNeed(needs, basis)} for <strong>{ingredient.name}</strong>, so it can&rsquo;t use {unitLabel(unit)} here. Use {unitLabel(alternative)} instead.
         </p>
         <div className="mt-2">
           <Button variant="secondary" onClick={onUseAlternative}>
@@ -80,11 +82,14 @@ export function WeightPrompt({
   return (
     <div role="group" aria-label={`Weight for ${ingredient.name}`} className="col-span-full rounded-md border border-accent/40 bg-soft px-3 py-3 text-sm text-ink">
       <p>
-        To use {unitLabel(unit)} with <strong>{ingredient.name}</strong>, Plantry needs {describeNeed(needs)}. It only asks once.
+        To use {unitLabel(unit)} with <strong>{ingredient.name}</strong>, Plantry needs {describeNeed(needs, basis)}. It only asks once.
       </p>
       <div className="mt-2 grid gap-3 sm:grid-cols-2">
         {needCup ? (
-          <Field label="1 cup weighs (g)" hint={typical ? `Typical: about ${typical} g` : "Flour about 120, sugar about 200, milk about 245"}>
+          <Field
+            label={`1 ${unitLabel(basis)} weighs (g)`}
+            hint={typical ? `Typical: about ${typical} g` : basis === "cup" ? "Flour about 120, sugar about 200, milk about 245" : "A kitchen scale helps for small amounts"}
+          >
             <input className={inputCls} inputMode="decimal" value={cupG} onChange={(e) => setCupG(e.target.value)} />
             {typical && cupG.trim() === "" ? (
               <button type="button" className="min-h-9 text-left text-sm font-medium text-accent hover:underline" onClick={() => setCupG(String(typical))}>

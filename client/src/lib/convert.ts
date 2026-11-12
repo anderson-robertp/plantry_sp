@@ -22,6 +22,9 @@ export const unitKind = (u: Unit): Kind => UNIT[u].kind;
 
 export const ML_PER_CUP = 236.5882365;
 
+/** Millilitres in one of a volume unit (0 for anything that isn't a volume). */
+export const mlPer = (u: Unit): number => (UNIT[u].kind === "volume" ? UNIT[u].factor : 0);
+
 const UNIT: Record<Unit, { kind: Kind; factor: number }> = {
   g: { kind: "mass", factor: 1 },
   kg: { kind: "mass", factor: 1000 },

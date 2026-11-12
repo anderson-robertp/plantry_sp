@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cupGrams, describeNeed, gramsPerMlFromCup, missingWeights, typicalCupGrams } from "./weights";
+import { cupGrams, describeNeed, gramsPerMlFromBasis, gramsPerMlFromCup, missingWeights, typicalCupGrams, typicalForBasis, weightBasis } from "./weights";
 
 describe("missingWeights", () => {
   const beans = { baseUnitType: "mass", package: { size: 430, unit: "g" } } as const;
@@ -53,5 +53,30 @@ describe("cup helpers", () => {
     expect(describeNeed(["gramsPerMl"])).toBe("how much 1 cup of it weighs");
     expect(describeNeed(["gramsPerPiece"])).toBe("how much one piece of it weighs");
     expect(describeNeed(["gramsPerMl", "gramsPerPiece"])).toMatch(/1 cup and how much one piece/);
+  });
+});
+
+describe("asking about the unit on the line", () => {
+  it("asks about a spoon for spoon lines and a cup for everything else", () => {
+    expect(weightBasis("tsp")).toBe("tsp");
+    expect(weightBasis("tbsp")).toBe("tbsp");
+    for (const u of ["cup", "ml", "l", "fl_oz", "pinch"] as const) expect(weightBasis(u)).toBe("cup");
+  });
+
+  it("turns grams per teaspoon, tablespoon or cup into grams per ml", () => {
+    expect(gramsPerMlFromBasis(120, "cup")).toBeCloseTo(0.50721, 5);
+    expect(gramsPerMlFromBasis(2.5, "tsp")).toBeCloseTo(0.50721, 3);
+    expect(gramsPerMlFromBasis(7.5, "tbsp")).toBeCloseTo(0.50721, 3);
+  });
+
+  it("scales a typical cup down to a spoon", () => {
+    expect(typicalForBasis(120, "cup")).toBe(120);
+    expect(typicalForBasis(120, "tbsp")).toBe(7.5);
+    expect(typicalForBasis(120, "tsp")).toBe(2.5);
+  });
+
+  it("describes the need in the line's unit", () => {
+    expect(describeNeed(["gramsPerMl"], "tsp")).toBe("how much 1 tsp of it weighs");
+    expect(describeNeed(["gramsPerMl", "gramsPerPiece"], "tbsp")).toBe("how much 1 tbsp and how much one piece of it weighs");
   });
 });

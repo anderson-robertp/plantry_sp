@@ -1,4 +1,4 @@
-import { ML_PER_CUP, unitKind } from "./convert";
+import { ML_PER_CUP, mlPer, unitKind } from "./convert";
 import type { BaseUnitType, Unit } from "./types";
 
 export type WeightField = "gramsPerMl" | "gramsPerPiece";
@@ -58,11 +58,30 @@ export function typicalCupGrams(name: string): number | null {
   return TYPICAL_CUP_GRAMS.find((t) => t.test.test(n))?.grams ?? null;
 }
 
+/**
+ * What to ask the person to weigh. Teaspoon and tablespoon lines ask about a teaspoon or tablespoon
+ * (nobody weighs a cup of cinnamon); everything else asks about a cup.
+ */
+export function weightBasis(unit: Unit): "cup" | "tbsp" | "tsp" {
+  return unit === "tsp" || unit === "tbsp" ? unit : "cup";
+}
+
+/** Grams per ml from "1 {basis} weighs {grams} g". */
+export function gramsPerMlFromBasis(grams: number, basis: "cup" | "tbsp" | "tsp"): number {
+  return Math.round((grams / mlPer(basis)) * 1e6) / 1e6;
+}
+
+/** A typical cup weight scaled down to a spoon, rounded sensibly for showing. */
+export function typicalForBasis(cupGramsValue: number, basis: "cup" | "tbsp" | "tsp"): number {
+  const g = (cupGramsValue * mlPer(basis)) / ML_PER_CUP;
+  return basis === "cup" ? Math.round(g) : Math.round(g * 10) / 10;
+}
+
 /** Plain words for what is missing, for the prompt. */
-export function describeNeed(fields: readonly WeightField[]): string {
-  const cup = fields.includes("gramsPerMl");
+export function describeNeed(fields: readonly WeightField[], basis: "cup" | "tbsp" | "tsp" = "cup"): string {
+  const vol = fields.includes("gramsPerMl");
   const piece = fields.includes("gramsPerPiece");
-  if (cup && piece) return "how much 1 cup and how much one piece of it weighs";
-  if (cup) return "how much 1 cup of it weighs";
+  if (vol && piece) return `how much 1 ${basis} and how much one piece of it weighs`;
+  if (vol) return `how much 1 ${basis} of it weighs`;
   return "how much one piece of it weighs";
 }
