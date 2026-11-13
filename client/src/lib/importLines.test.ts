@@ -47,4 +47,10 @@ describe("hostOf", () => {
     expect(hostOf("https://www.example.com/a/b")).toBe("example.com");
     expect(hostOf("nonsense")).toBe("nonsense");
   });
+
+  it("a to-taste line needs no amount and carries the flag", () => {
+    const f = toFormLine(line({ quantity: null, unit: null, name: "flour", toTaste: true, match: { ingredient: flour, confidence: "exact", unitFits: false }, originalText: "salt, to taste" }), DEFAULT_PREFS);
+    expect(f.toTaste).toBe(true);
+    expect(f.hint).toBeUndefined();
+  });
 });

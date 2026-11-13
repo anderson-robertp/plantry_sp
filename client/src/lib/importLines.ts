@@ -25,6 +25,7 @@ export interface FormLine {
   quantity: string;
   unit: Unit;
   optional: boolean;
+  toTaste?: boolean;
   extra: Record<string, unknown>;
   /** the ingredient as the recipe wrote it, used to start the search */
   searchHint: string;
@@ -60,9 +61,9 @@ export function toFormLine(l: ImportLine, prefs: Prefs): FormLine {
       text: l.suggestions.length > 0 ? "Not sure which ingredient this is. Pick one, or search for it." : "No matching ingredient yet. Search for it, or add it as a new one.",
       suggestions: l.suggestions.map(picked),
     };
-  } else if (!l.match.unitFits) {
+  } else if (!l.match.unitFits && !l.toTaste) {
     hint = { kind: "unit", text: "This unit needs one more detail about that ingredient. See below.", suggestions: [] };
-  } else if (l.quantity === null) {
+  } else if (l.quantity === null && !l.toTaste) {
     hint = { kind: "amount", text: "The recipe gives no amount here. Enter one, or remove the line.", suggestions: [] };
   } else if (l.match.confidence === "close") {
     hint = { kind: "check", text: `Matched to ${l.match.ingredient.name}. Check that's right.`, suggestions: l.suggestions.map(picked) };
@@ -73,6 +74,7 @@ export function toFormLine(l: ImportLine, prefs: Prefs): FormLine {
     quantity: l.quantity === null ? "" : qtyText(l.quantity),
     unit,
     optional: l.optional,
+    ...(l.toTaste ? { toTaste: true } : {}),
     extra,
     searchHint: l.name,
     from: l.originalText,

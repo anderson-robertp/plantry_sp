@@ -15,15 +15,16 @@ import recipeMatchRoutes from "./routes/recipeMatch.js"
 import shoppingItemRoutes from "./routes/shoppingItem.js"
 import dashboardRoutes from "./routes/dashboard.js"
 import cookRoutes from "./routes/cookRoutes.js"
-import mealPlanEntryRoutes from "./routes/mealPlanEntryRoutes.js";
+import mealPlanEntryRoutes from "./routes/mealPlanEntry.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import { householdInviteRoutes, inviteLookupRoutes } from "./routes/inviteRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { mePreferencesRoutes, householdSettingsRoutes } from "./routes/settingsRoutes.js";
-import recipeImportRoutes from "./routes/recipeImportRoutes.js";
+import recipeImportRoutes from "./routes/recipeImport.js";
 import favoritesRoutes from "./routes/favoritesRoutes.js";
 import swaggerUi from "swagger-ui-express";
 import { openApiDocument } from "./config/openapi.js";
+import recommendationsRoutes from "./routes/recommendations.js";
 
 const config = loadConfig(); // throws at startup on a bad environment
 const app = express();
@@ -64,6 +65,7 @@ app.use("/api/me", mePreferencesRoutes);
 app.use("/api/households", householdSettingsRoutes);
 app.use("/api/households", recipeImportRoutes);
 app.use("/api/households", favoritesRoutes);
+app.use("/api/households", recommendationsRoutes);
 
 
 // Error handling middleware

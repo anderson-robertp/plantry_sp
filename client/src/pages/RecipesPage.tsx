@@ -256,7 +256,7 @@ function RecipeDetails({ householdId, url }: { householdId: string; url: string 
                   {nameOf(refId(l.ingredientId))} {l.optional ? <Badge>optional</Badge> : null}
                 </span>
                 <span className="shrink-0 text-muted">
-                  {(() => {
+                  {l.toTaste ? "to taste" : (() => {
                     const shown = displayAmount(l, detail(refId(l.ingredientId)), prefs);
                     return (
                       <span title={shown.converted ? `As written: ${amount(l.quantity, l.unit)}` : undefined}>
@@ -323,6 +323,7 @@ function EditRecipe({ householdId, url, onCancel, onSaved }: { householdId: stri
       quantity: String(l.quantity),
       unit: l.unit,
       optional: Boolean(l.optional),
+      toTaste: Boolean(l.toTaste),
       extra,
     };
   });
@@ -374,6 +375,8 @@ interface Line {
   quantity: string;
   unit: Unit;
   optional: boolean;
+  /** "Salt, to taste": no amount or unit. */
+  toTaste?: boolean;
   /** Fields this form doesn't edit (notes, group, original text) are kept as they were. */
   extra?: Record<string, unknown>;
   /** Set on lines imported from a web page. */
@@ -467,7 +470,7 @@ const clearsHint = (h: LineHint | undefined, patch: Partial<Line>) =>
       shared: p.shared ?? (d ? d.householdId == null : undefined),
     };
   };
-  const needsOf = (l: Line) => missingWeights(infoOf(l), l.unit);
+  const needsOf = (l: Line) => (l.toTaste ? [] : missingWeights(infoOf(l), l.unit));
 
   const update = (key: number, patch: Partial<Line>) =>
     setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch, ...(clearsHint(l.hint, patch) ? { hint: undefined } : {}) } : l)));
@@ -483,7 +486,7 @@ const clearsHint = (h: LineHint | undefined, patch: Partial<Line>) =>
     filled.forEach((l, i) => {
       if (!l.ingredient) errs[`line.${i}.ingredient`] = "Choose an ingredient.";
       const q = Number(l.quantity);
-      if (l.quantity.trim() === "" || !Number.isFinite(q) || q < 0) errs[`line.${i}.quantity`] = "Enter an amount.";
+      if (!l.toTaste && (l.quantity.trim() === "" || !Number.isFinite(q) || q < 0)) errs[`line.${i}.quantity`] = "Enter an amount, or tick “To taste”.";
       if (l.ingredient && needsOf(l).length > 0) errs[`line.${i}.ingredient`] = "Add the missing weight below, or pick a different unit.";
     });
     setLocalError(errs);
@@ -511,8 +514,7 @@ const clearsHint = (h: LineHint | undefined, patch: Partial<Line>) =>
       ingredients: filled.map((l) => ({
         ...(l.extra ?? {}),
         ingredientId: l.ingredient!.id,
-        quantity: Number(l.quantity),
-        unit: l.unit,
+        ...(l.toTaste ? { toTaste: true } : { quantity: Number(l.quantity), unit: l.unit, ...(existing ? { toTaste: false } : {}) }),
         ...(existing ? { optional: l.optional } : l.optional ? { optional: true } : {}),
       })),
     };
@@ -579,10 +581,13 @@ const clearsHint = (h: LineHint | undefined, patch: Partial<Line>) =>
                 error={fe[`line.${i}.ingredient`] ?? fe[`ingredients.${i}.ingredientId`]}
               />
               </div>
-              <Field label="Amount" error={fe[`line.${i}.quantity`] ?? fe[`ingredients.${i}.quantity`]}>
+              {l.toTaste ? (
+                <p className="col-span-2 self-center text-sm text-muted sm:col-span-2">to taste, no amount</p>
+              ) : null}
+              {l.toTaste ? null : <Field label="Amount" error={fe[`line.${i}.quantity`] ?? fe[`ingredients.${i}.quantity`]}>
                 <input className={inputCls} inputMode="decimal" value={l.quantity} onChange={(e) => update(l.key, { quantity: e.target.value })} />
-              </Field>
-              <Field label="Unit" error={fe[`ingredients.${i}.unit`]}>
+              </Field>}
+              {l.toTaste ? null : <Field label="Unit" error={fe[`ingredients.${i}.unit`]}>
                 <select
                   className={inputCls}
                   value={l.unit}
@@ -609,11 +614,15 @@ const clearsHint = (h: LineHint | undefined, patch: Partial<Line>) =>
                     No unit
                   </label>
                 ) : null}
-              </Field>
+              </Field>}
               <div className="col-span-2 flex items-center justify-between gap-2 sm:col-span-1 sm:justify-start sm:pb-1.5">
                 <label className="flex min-h-11 items-center gap-2 text-sm text-ink sm:min-h-0 sm:text-xs sm:text-muted">
                   <input type="checkbox" className="size-5 sm:size-4" checked={l.optional} onChange={(e) => update(l.key, { optional: e.target.checked })} />
                   Optional
+                </label>
+                <label className="flex min-h-11 items-center gap-2 text-sm text-ink sm:min-h-0 sm:text-xs sm:text-muted" title="For salt, pepper and the like. No amount is needed.">
+                  <input type="checkbox" className="size-5 sm:size-4" checked={Boolean(l.toTaste)} onChange={(e) => update(l.key, { toTaste: e.target.checked })} />
+                  To taste
                 </label>
                 {lines.length > 1 ? (
                   <Button variant="ghost" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} aria-label="Remove this ingredient">

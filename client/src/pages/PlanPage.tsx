@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useHousehold } from "../auth/HouseholdContext";
+import { Suggestions } from "../components/Suggestions";
 import { Badge, Button, Card, ErrorBanner, Field, inputCls, Loading, PageHeader } from "../components/ui";
 import { useAsync } from "../hooks/useAsync";
 import { useFavorites } from "../hooks/useFavorites";
@@ -148,6 +149,7 @@ export function PlanPage() {
       <Card className="mb-6">
         <AddEntry
           recipes={recipeList}
+          planId={planId}
           defaultDate={p.startDate > localToday() ? p.startDate : p.endDate < localToday() ? p.startDate : localToday()}
           onAdd={(body) =>
             act(async () => {
@@ -294,10 +296,12 @@ function DeletePlan({ onConfirm }: { onConfirm: () => Promise<void> }) {
 
 function AddEntry({
   recipes,
+  planId,
   defaultDate,
   onAdd,
 }: {
   recipes: Recipe[];
+  planId: string;
   defaultDate: string;
   onAdd: (body: { date: string; slot: MealSlot; course: Course; recipeId: string; servings: number }) => Promise<void>;
 }) {
@@ -339,6 +343,7 @@ function AddEntry({
   if (recipes.length === 0) return <p className="text-sm text-muted">Add a recipe first, then you can plan meals with it.</p>;
 
   return (
+    <>
     <form onSubmit={submit} className="grid gap-3 sm:grid-cols-[8rem_7rem_7rem_1fr_6rem_auto] sm:items-end" noValidate>
       <Field label="Day" htmlFor="e-date">
         <input id="e-date" type="date" className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} />
@@ -394,6 +399,15 @@ function AddEntry({
         {busy ? "Adding…" : "Add meal"}
       </Button>
     </form>
+    <Suggestions
+      course={course}
+      planId={planId}
+      onPick={(id) => {
+        setRecipeId(id);
+        setCourse(courseFromTags(recipes.find((r) => r._id === id)?.tags));
+      }}
+    />
+    </>
   );
 }
 

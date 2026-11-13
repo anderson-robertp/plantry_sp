@@ -62,6 +62,7 @@ export interface RecipeLine {
   quantity: number;
   unit: Unit;
   optional?: boolean;
+  toTaste?: boolean;
 }
 
 export interface Recipe {
@@ -95,6 +96,8 @@ export interface ImportLine {
   name: string;
   notes?: string;
   optional: boolean;
+  /** "salt, to taste": the recipe gives no amount on purpose. */
+  toTaste?: boolean;
   match: { ingredient: ImportIngredient; confidence: "exact" | "close"; unitFits: boolean } | null;
   suggestions: ImportIngredient[];
 }
@@ -303,4 +306,12 @@ export interface InvitePreview {
   alreadyMember: boolean;
   full: boolean;
   expiresAt: string;
+}
+
+/** One suggested recipe, with the reasons it was picked. */
+export interface Recommendation {
+  recipeId: string;
+  name: string;
+  score: number;
+  reasons: { code: string; text: string; tone: "good" | "bad" }[];
 }
